@@ -17,9 +17,28 @@ npm run build    # dist/ 생성 (Capacitor용 상대 경로 빌드)
 
 ## 규칙
 
-- 게임오버 없음. 부딪히면 별 -1, 1.5초 동안 깜빡이며 무적
-- 30초마다 조금씩 빨라짐 (최대 5단계)
+- 차를 피하면서, 미션에 맞는 토큰(동그란 그림/글자)을 골라 먹는다
+- 게임오버 없음. 차에 부딪히면 별 -1, 1.5초 동안 깜빡이며 무적
+- 틀린 토큰은 별을 빼지 않고 부드러운 소리 + 음성으로 규칙을 다시 알려 준다
+- 미션 성공 시 별 +3, 미션 2개마다 조금씩 빨라짐 (최대 5단계)
 - 한 줄에 차는 최대 2대라 빠져나갈 차선이 항상 있음
+
+## 두뇌 발달 미션
+
+네 영역이 번갈아 나오고, 영역마다 실력에 맞춰 난이도가 바뀐다
+(틀린 게 1번 이하면 2단계로, 4번 이상이면 1단계로).
+
+| 영역 | 미션 | 기르는 힘 |
+|---|---|---|
+| 골라 먹기 | 빨간색만 / 세모만 / 동물만 / (2단계) 빨간 동그라미만 | 선택적 주의, 충동 조절, 분류 |
+| 숫자 | 사과 3개 먹기, 1→2→3 차례대로, (2단계) 더하기 | 수 세기, 순서, 기초 연산 |
+| 한글 | ㄱ 찾기(2단계는 ㄱ/ㅋ처럼 헷갈리는 글자 섞기), 사→과 낱말 만들기 | 자음 구별, 글자 순서 |
+| 기억·규칙 | 잠깐 본 그림 기억해서 먹기, ●▲●▲ 다음 찾기 | 작업 기억, 규칙 찾기 |
+
+- 미션 문구는 브라우저 내장 음성(TTS, 한국어 음성이 있을 때)으로 읽어 준다
+- 영역 켜고 끄기: `src/config.js`의 `MISSION_AREAS`
+- 낱말·그림 추가: `src/missions/data.js`
+- Android(Capacitor)로 감쌀 때는 WebView에 TTS가 없으므로 `src/audio/Voice.js`를 TTS 플러그인으로 바꿔야 한다
 
 ## 구조
 
@@ -30,5 +49,9 @@ npm run build    # dist/ 생성 (Capacitor용 상대 경로 빌드)
 | `src/scenes/TitleScene.js` | 차 고르기 |
 | `src/scenes/GameScene.js` | 본 게임 |
 | `src/scenes/PauseScene.js`, `ResultScene.js` | 멈춤 / 결과 |
-| `src/objects/Spawner.js` | 장애물·별 생성 규칙 |
+| `src/objects/Spawner.js` | 장애물·미션 토큰 생성 규칙 |
+| `src/missions/missions.js` | 미션 8종과 난이도 조절(MissionDirector) |
+| `src/missions/data.js` | 그림·낱말·자음 데이터 |
+| `src/ui/MissionPanel.js` | 위쪽 미션판 |
 | `src/audio/Sfx.js` | WebAudio 합성 효과음·배경음악 |
+| `src/audio/Voice.js` | 음성 안내(TTS) |

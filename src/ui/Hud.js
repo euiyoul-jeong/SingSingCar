@@ -1,4 +1,5 @@
 import { sfx } from '../audio/Sfx.js';
+import { voice } from '../audio/Voice.js';
 import { makeText } from './widgets.js';
 
 const DEPTH = 100;
@@ -25,12 +26,16 @@ export class Hud {
       .setInteractive({ useHandCursor: true });
     sound.on('pointerup', () => {
       sfx.setMuted(!sfx.muted);
+      if (sfx.muted) voice.stop();
       sound.setTexture(sfx.muted ? 'icon_sound_off' : 'icon_sound_on');
     });
   }
 
   setStars(n) {
     this.starText.setText(String(n));
+    // 연달아 불려도 크기가 커진 채 남지 않게 매번 원래 크기에서 시작한다
+    this.scene.tweens.killTweensOf(this.starIcon);
+    this.starIcon.setScale(0.75);
     this.scene.tweens.add({ targets: this.starIcon, scale: 1, duration: 100, yoyo: true });
   }
 }

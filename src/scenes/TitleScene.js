@@ -29,7 +29,7 @@ export class TitleScene extends Phaser.Scene {
       strokeThickness: 14,
     });
     this.tweens.add({ targets: title, y: 185, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    makeText(this, GAME_W / 2, 290, '차를 피해서 별을 모아요!', 48, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
+    makeText(this, GAME_W / 2, 290, '차를 피하고 미션을 해결해요!', 48, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
     makeText(this, GAME_W / 2, 400, '내 차를 골라요', 52, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
 
     const saved = PLAYER_CARS.findIndex((c) => c.key === storage.get(STORAGE_KEYS.car));

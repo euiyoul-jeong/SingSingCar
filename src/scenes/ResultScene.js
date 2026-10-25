@@ -11,6 +11,7 @@ export class ResultScene extends Phaser.Scene {
 
   init(data) {
     this.stars = data.stars ?? 0;
+    this.missions = data.missions ?? 0;
     this.carKey = data.carKey || 'car_red';
   }
 
@@ -35,6 +36,9 @@ export class ResultScene extends Phaser.Scene {
     } else {
       makeText(this, GAME_W / 2, 560, '다음엔 별을 모아 봐요!', 60, '#ffffff', stroke);
     }
+    if (this.missions > 0) {
+      makeText(this, GAME_W / 2, 1110, `미션 ${this.missions}개 성공!`, 52, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
+    }
 
     if (newBest) {
       const badge = makeText(this, GAME_W / 2, 670, '새 기록!', 64, '#ff4081', { stroke: '#ffffff', strokeThickness: 10 });
@@ -55,7 +59,7 @@ export class ResultScene extends Phaser.Scene {
       onClick: () => this.scene.start('Title'),
     });
 
-    const car = this.add.image(-100, 1180, this.carKey).setAngle(90).setScale(0.7);
+    const car = this.add.image(-100, 1215, this.carKey).setAngle(90).setScale(0.7);
     this.tweens.add({ targets: car, x: GAME_W + 100, duration: 3500, repeat: -1 });
 
     this.input.keyboard.on('keydown-ENTER', () => this.scene.start('Game', { carKey: this.carKey }));

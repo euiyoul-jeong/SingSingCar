@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ROAD_W, ROAD_X } from '../config.js';
+import { COLORS, SHAPES } from '../missions/data.js';
 
 // 그림 파일 없이 모든 텍스처를 코드로 그린다.
 // 나중에 실제 그림으로 바꿀 때는 같은 키로 preload()에서 load.image 하면 된다.
@@ -128,6 +129,26 @@ function drawStar(g, cx, cy, outer, inner) {
   g.fillCircle(cx + 9, cy + 2, 4);
 }
 
+// 미션 토큰용 색깔 도형 (아래에 진한 그림자를 깔아 윤곽을 만든다)
+function drawShape(g, shape, color, s) {
+  const pass = (fill, dy) => {
+    g.fillStyle(fill);
+    if (shape === 'circle') {
+      g.fillCircle(s / 2, s / 2 + dy, s * 0.42);
+    } else if (shape === 'square') {
+      g.fillRoundedRect(s * 0.1, s * 0.1 + dy, s * 0.8, s * 0.8, s * 0.1);
+    } else if (shape === 'triangle') {
+      g.fillTriangle(s / 2, s * 0.06 + dy, s * 0.95, s * 0.9 + dy, s * 0.05, s * 0.9 + dy);
+    } else if (shape === 'heart') {
+      g.fillCircle(s * 0.31, s * 0.36 + dy, s * 0.22);
+      g.fillCircle(s * 0.69, s * 0.36 + dy, s * 0.22);
+      g.fillTriangle(s * 0.1, s * 0.45 + dy, s * 0.9, s * 0.45 + dy, s / 2, s * 0.92 + dy);
+    }
+  };
+  pass(shade(color, -0.35), 4);
+  pass(color, 0);
+}
+
 function drawSpeaker(g) {
   g.fillStyle(0x37474f);
   g.fillRect(24, 40, 14, 20);
@@ -176,6 +197,12 @@ export class BootScene extends Phaser.Scene {
     this.bake('obs_truck', 112, 220, (g) => drawTruck(g, 112, 220));
 
     this.bake('star', 100, 100, (g) => drawStar(g, 50, 52, 44, 20));
+
+    for (const shape of Object.keys(SHAPES)) {
+      for (const [key, { hex }] of Object.entries(COLORS)) {
+        this.bake(`shape_${shape}_${key}`, 96, 100, (g) => drawShape(g, shape, hex, 96));
+      }
+    }
 
     // 도로 한 칸(세로로 반복). 차선 점선 2개와 양쪽 흰 선
     this.bake('road', ROAD_W, 200, (g) => {

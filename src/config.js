@@ -9,24 +9,29 @@ export const ROAD_W = 480;
 export const LANE_X = [200, 360, 520];
 export const PLAYER_Y = 1060;
 
-// 도로 속도(px/초). 30초마다 한 단계씩 빨라지고 마지막 단계에서 멈춘다
-export const SPEED_STEPS = [240, 290, 340, 390, 430];
-export const SPEED_UP_MS = 30000;
+// 도로 속도(px/초). 미션을 2개 해낼 때마다 한 단계씩 빨라지고 마지막 단계에서 멈춘다.
+// 토큰을 보고 생각할 시간이 필요하므로 느리게 시작한다
+export const SPEED_STEPS = [190, 220, 250, 280, 310];
+export const MISSIONS_PER_SPEED_UP = 2;
 
-// 장애물 줄 사이 거리(px). 첫 줄은 조금 더 늦게 나온다
-export const ROW_GAP = 460;
-export const FIRST_ROW_GAP = 700;
+// 장애물 줄 사이 거리(px). 미션이 시작되면 첫 줄은 조금 빨리 나온다
+export const ROW_GAP = 520;
+export const FIRST_ROW_GAP = 300;
 // 속도 단계별로 한 줄에 차 2대가 나올 확률 (3대는 절대 안 나온다)
-export const TWO_CAR_CHANCE = [0.1, 0.2, 0.3, 0.35, 0.4];
-// 차 줄의 빈 차선에 별이 나올 확률, 줄과 줄 사이에 별이 나올 확률
-export const STAR_CHANCE = 0.6;
-export const MID_STAR_CHANCE = 0.3;
+export const TWO_CAR_CHANCE = [0.1, 0.15, 0.2, 0.25, 0.3];
+// 빈 차선이 2개일 때: 정답+오답을 함께 낼 확률 (나머지는 하나만)
+export const PAIR_CHANCE = 0.7;
+
+// 두뇌 발달 미션 영역: attention(골라 먹기) number(숫자) hangul(한글) memory(기억·규칙)
+export const MISSION_AREAS = ['attention', 'number', 'hangul', 'memory'];
+// 미션 성공 보너스 별
+export const MISSION_BONUS = 3;
 
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
 export const HIT_DX = 80;
 export const HIT_PAD = 30;
-export const STAR_DX = 95;
-export const STAR_DY = 120;
+export const TOKEN_DX = 95;
+export const TOKEN_DY = 120;
 export const INVINCIBLE_MS = 1500;
 
 export const MOVE_MS = 150;
@@ -42,7 +47,8 @@ export const OBSTACLE_KEYS = ['obs_yellow', 'obs_green', 'obs_purple', 'obs_oran
 
 export const PRAISE = ['잘했어!', '최고야!', '멋져!', '대단해!', '짱이야!'];
 
-export const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+export const FONT =
+  '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 
 export const STORAGE_KEYS = {
   car: 'cargame.car',

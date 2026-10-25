@@ -32,7 +32,7 @@ export class PauseScene extends Phaser.Scene {
 
   quit() {
     const game = this.scene.get('Game');
-    const data = { stars: game.stars, carKey: game.carKey };
+    const data = { stars: game.stars, carKey: game.carKey, missions: game.director.completed };
     this.scene.stop('Game');
     this.scene.start('Result', data);
   }

@@ -4,19 +4,28 @@ import {
   GAME_W,
   HIT_DX,
   HIT_PAD,
+  MISSION_AREAS,
+  MISSION_BONUS,
+  MISSIONS_PER_SPEED_UP,
+  PAIR_CHANCE,
   PRAISE,
   ROAD_W,
   ROAD_X,
   SPEED_STEPS,
-  SPEED_UP_MS,
-  STAR_DX,
-  STAR_DY,
+  TOKEN_DX,
+  TOKEN_DY,
 } from '../config.js';
 import { sfx } from '../audio/Sfx.js';
+import { voice } from '../audio/Voice.js';
+import { MissionDirector } from '../missions/missions.js';
 import { PlayerCar } from '../objects/PlayerCar.js';
 import { Spawner } from '../objects/Spawner.js';
 import { Hud } from '../ui/Hud.js';
+import { MissionPanel } from '../ui/MissionPanel.js';
+import { makeSpecView } from '../ui/specView.js';
 import { makeText } from '../ui/widgets.js';
+
+const REMINDER_COOLDOWN_MS = 3500;
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -27,10 +36,13 @@ export class GameScene extends Phaser.Scene {
     this.carKey = data.carKey || 'car_red';
     this.stars = 0;
     this.level = 0;
-    this.playMs = 0;
-    this.lastPraise = 0;
     this.untilDecor = 0;
     this.decor = [];
+    this.director = new MissionDirector(MISSION_AREAS);
+    this.mission = null;
+    this.phase = 'ready';
+    this.rowsSinceGood = 0;
+    this.lastReminder = -Infinity;
   }
 
   create() {
@@ -43,13 +55,14 @@ export class GameScene extends Phaser.Scene {
     this.sparks = this.add
       .particles(0, 0, 'spark', {
         speed: { min: 150, max: 380 },
-        lifespan: 500,
+        lifespan: 600,
         scale: { start: 1.3, end: 0 },
-        tint: [0xffeb3b, 0xffffff, 0xffc107],
+        tint: [0xffeb3b, 0xffffff, 0xffc107, 0xff80ab, 0x80d8ff],
         emitting: false,
       })
-      .setDepth(20);
+      .setDepth(70);
     this.hud = new Hud(this, { onPause: () => this.pauseGame() });
+    this.panel = new MissionPanel(this);
 
     // 화면 왼쪽 절반 = 왼쪽, 오른쪽 절반 = 오른쪽. 버튼 위를 누른 건 무시
     this.input.on('pointerdown', (pointer, over) => {
@@ -70,12 +83,14 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.HIDDEN, onHidden);
       sfx.stopBgm();
+      voice.stop();
     });
 
     this.showHint();
     this.popup('출발!', '#ffeb3b');
     sfx.startBgm();
     sfx.honk();
+    this.time.delayedCall(1700, () => this.startMission());
   }
 
   steer(dir) {
@@ -88,21 +103,155 @@ export class GameScene extends Phaser.Scene {
   pauseGame() {
     if (!this.scene.isActive()) return;
     sfx.stopBgm();
+    voice.stop();
     this.scene.pause();
     this.scene.launch('Pause');
   }
 
+  // ───────── 미션 흐름: 소개 카드 → 플레이 → 성공 → 다음 미션 ─────────
+
+  startMission() {
+    const m = this.director.next();
+    this.mission = m;
+    this.phase = 'intro';
+    this.rowsSinceGood = 0;
+    this.level = Math.min(SPEED_STEPS.length - 1, Math.floor(this.director.completed / MISSIONS_PER_SPEED_UP));
+    this.panel.hide();
+    voice.say(m.intro.speech);
+    this.showIntro(m.intro, () => {
+      this.phase = 'play';
+      this.panel.show(m.panel());
+      if (m.intro.after) voice.say(m.intro.after);
+      this.spawner.start((n) => this.rowItems(n));
+    });
+  }
+
+  // 빈 차선 수에 맞춰 이번 줄에 놓을 토큰을 정한다. 정답이 두 줄 넘게 안 나오는 일은 없게 한다
+  rowItems(freeCount) {
+    const m = this.mission;
+    if (freeCount >= 2 && Math.random() < PAIR_CHANCE) {
+      this.rowsSinceGood = 0;
+      return Phaser.Utils.Array.Shuffle([m.correct(), m.distractor()]);
+    }
+    const wantGood = this.rowsSinceGood >= 1 || Math.random() < 0.5;
+    this.rowsSinceGood = wantGood ? 0 : this.rowsSinceGood + 1;
+    const spec = wantGood ? m.correct() : m.distractor();
+    if (freeCount === 1) return [spec];
+    return Math.random() < 0.5 ? [spec, null] : [null, spec];
+  }
+
+  eat(item) {
+    this.spawner.removeItem(item);
+    const m = this.mission;
+    const { result, say } = m.judge(item.spec);
+
+    if (result === 'good') {
+      this.sparks.explode(16, item.x, item.y);
+      this.floatText(item.x, item.y - 40, '+1', '#ffeb3b', 56);
+      this.stars++;
+      this.hud.setStars(this.stars);
+      sfx.star();
+      this.tweens.add({ targets: item, scale: 1.6, alpha: 0, duration: 200, onComplete: () => item.destroy() });
+      if (m.done) {
+        this.completeMission(say);
+        return;
+      }
+      this.panel.render(m.panel());
+      if (m.roundChanged) {
+        m.roundChanged = false;
+        voice.say([say, m.roundSpeech].filter(Boolean).join(' '));
+      } else if (say) {
+        voice.say(say);
+      }
+    } else if (result === 'bad') {
+      m.wrong++;
+      sfx.wrong();
+      this.floatText(item.x, item.y - 50, '앗!', '#ff7043', 60);
+      this.tweens.add({ targets: item, x: item.x + 14, duration: 50, yoyo: true, repeat: 3 });
+      this.tweens.add({ targets: item, alpha: 0, scale: 0.4, delay: 250, duration: 200, onComplete: () => item.destroy() });
+      this.tweens.add({ targets: this.panel.title, scale: 1.2, duration: 150, yoyo: true, repeat: 1 });
+      const now = this.time.now;
+      if (now - this.lastReminder > REMINDER_COOLDOWN_MS) {
+        this.lastReminder = now;
+        voice.say(m.reminder);
+      }
+    } else {
+      this.tweens.add({ targets: item, alpha: 0, duration: 150, onComplete: () => item.destroy() });
+    }
+  }
+
+  completeMission(say) {
+    const m = this.mission;
+    this.phase = 'success';
+    this.director.finish(m);
+    this.spawner.stop();
+    this.spawner.clearItems();
+    this.panel.render(m.panel());
+
+    this.stars += MISSION_BONUS;
+    this.hud.setStars(this.stars);
+    sfx.success();
+    for (let i = 0; i < 5; i++) {
+      this.time.delayedCall(i * 140, () =>
+        this.sparks.explode(24, Phaser.Math.Between(160, 560), Phaser.Math.Between(380, 760)),
+      );
+    }
+    const praise = Phaser.Utils.Array.GetRandom(PRAISE);
+    this.popup('미션 성공!', '#ff80ab');
+    this.floatText(GAME_W / 2, 600, `${praise}  ★+${MISSION_BONUS}`, '#ffeb3b', 60, 1400);
+    voice.say([say, '미션 성공!', praise].filter(Boolean).join(' '));
+
+    this.time.delayedCall(2900, () => this.startMission());
+  }
+
+  showIntro(intro, onDone) {
+    const shows = intro.show ?? [];
+    const h = shows.length ? 500 : 360;
+    const c = this.add.container(GAME_W / 2, 650).setDepth(60).setScale(0.5).setAlpha(0);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.25);
+    bg.fillRoundedRect(-310, -h / 2 + 12, 620, h, 44);
+    bg.fillStyle(0xffffff, 1);
+    bg.fillRoundedRect(-310, -h / 2, 620, h, 44);
+    bg.lineStyle(8, 0xff9800);
+    bg.strokeRoundedRect(-310, -h / 2, 620, h, 44);
+    bg.fillStyle(0xff9800, 1);
+    bg.fillRoundedRect(-110, -h / 2 - 36, 220, 72, 36);
+    const badge = makeText(this, 0, -h / 2, '미션!', 46, '#ffffff');
+    const label = makeText(this, 0, shows.length ? -h / 2 + 130 : 10, intro.text, 50, '#37474f', {
+      lineSpacing: 12,
+    });
+    c.add([bg, badge, label]);
+
+    shows.forEach((spec, i) => {
+      const view = makeSpecView(this, spec, 130);
+      view.x = (i - (shows.length - 1) / 2) * 170;
+      view.y = h / 2 - 125;
+      c.add(view);
+      this.tweens.add({ targets: view, y: view.y - 14, duration: 400, yoyo: true, repeat: -1, delay: i * 120 });
+    });
+
+    this.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 350, ease: 'Back.Out' });
+    this.time.delayedCall(intro.ms ?? 3000, () => {
+      this.tweens.add({
+        targets: c,
+        scale: 0.6,
+        alpha: 0,
+        duration: 250,
+        onComplete: () => {
+          this.tweens.killTweensOf(c.list);
+          c.destroy();
+          onDone();
+        },
+      });
+    });
+  }
+
+  // ───────── 매 프레임 ─────────
+
   update(_time, delta) {
     const dt = Math.min(delta, 50) / 1000;
-    this.playMs += delta;
-
-    const level = Math.min(SPEED_STEPS.length - 1, Math.floor(this.playMs / SPEED_UP_MS));
-    if (level > this.level) {
-      this.level = level;
-      this.popup('더 빨리!', '#4fc3f7');
-      sfx.honk();
-    }
-
     const dy = SPEED_STEPS[this.level] * dt;
     this.road.tilePositionY -= dy;
     this.grassL.tilePositionY -= dy;
@@ -121,9 +270,11 @@ export class GameScene extends Phaser.Scene {
         break;
       }
     }
-    for (const star of [...this.spawner.stars]) {
-      if (Math.abs(star.x - p.x) < STAR_DX && Math.abs(star.y - p.y) < STAR_DY) {
-        this.collect(star);
+    if (this.phase !== 'play') return;
+    for (const item of [...this.spawner.items]) {
+      if (Math.abs(item.x - p.x) < TOKEN_DX && Math.abs(item.y - p.y) < TOKEN_DY) {
+        this.eat(item);
+        if (this.phase !== 'play') break;
       }
     }
   }
@@ -137,23 +288,6 @@ export class GameScene extends Phaser.Scene {
     sfx.crash();
     this.cameras.main.shake(200, 0.01);
     this.floatText(this.player.x, this.player.y - 120, '쿵!', '#ff7043', 72);
-  }
-
-  collect(star) {
-    this.sparks.explode(14, star.x, star.y);
-    this.floatText(star.x, star.y - 40, '+1', '#ffeb3b', 56);
-    this.spawner.removeStar(star);
-    this.stars++;
-    this.hud.setStars(this.stars);
-    sfx.star();
-
-    // 별 10개마다 칭찬 (한 번 칭찬한 단계는 다시 하지 않는다)
-    const milestone = Math.floor(this.stars / 10) * 10;
-    if (milestone > this.lastPraise) {
-      this.lastPraise = milestone;
-      this.popup(PRAISE[(milestone / 10 - 1) % PRAISE.length], '#ff80ab');
-      sfx.praise();
-    }
   }
 
   updateDecor(dy) {
@@ -182,7 +316,7 @@ export class GameScene extends Phaser.Scene {
     this.hint = [leftArrow, rightArrow, leftText, rightText];
     for (const h of this.hint) h.setDepth(30);
     this.tweens.add({ targets: this.hint, alpha: 0.35, duration: 500, yoyo: true, repeat: -1 });
-    this.time.delayedCall(6000, () => this.hideHint());
+    this.time.delayedCall(8000, () => this.hideHint());
   }
 
   hideHint() {
@@ -195,7 +329,7 @@ export class GameScene extends Phaser.Scene {
 
   popup(str, color) {
     const t = makeText(this, GAME_W / 2, 470, str, 110, color, { stroke: '#37474f', strokeThickness: 12 })
-      .setDepth(50)
+      .setDepth(80)
       .setScale(0.3);
     this.tweens.add({ targets: t, scale: 1, duration: 350, ease: 'Back.Out' });
     this.tweens.add({
@@ -208,8 +342,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  floatText(x, y, str, color, size) {
-    const t = makeText(this, x, y, str, size, color, { stroke: '#37474f', strokeThickness: 8 }).setDepth(40);
-    this.tweens.add({ targets: t, y: y - 80, alpha: 0, duration: 700, onComplete: () => t.destroy() });
+  floatText(x, y, str, color, size, holdMs = 0) {
+    const t = makeText(this, x, y, str, size, color, { stroke: '#37474f', strokeThickness: 8 }).setDepth(80);
+    this.tweens.add({ targets: t, y: y - 80, alpha: 0, delay: holdMs, duration: 700, onComplete: () => t.destroy() });
   }
 }

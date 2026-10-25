@@ -4,6 +4,8 @@ import { storage } from '../storage.js';
 // 소리 파일 없이 WebAudio로 효과음과 배경음악을 합성한다
 
 const MASTER_VOL = 0.8;
+const BGM_VOL = 1;
+const BGM_DUCKED = 0.3;
 
 // 배경음악: 8분음표 32개(4마디) 멜로디 + 4분음표 베이스, MIDI 번호 (null = 쉼표)
 const MELODY = [
@@ -27,6 +29,7 @@ class Sfx {
     this.ctx = null;
     this.master = null;
     this.muted = storage.get(STORAGE_KEYS.muted) === '1';
+    this.bgmBus = null;
     this.bgmTimer = null;
     this.step = 0;
     this.nextTime = 0;
@@ -41,6 +44,10 @@ class Sfx {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : MASTER_VOL;
       this.master.connect(this.ctx.destination);
+      // 배경음악만 따로 줄일 수 있게 (음성 안내 중에 작게)
+      this.bgmBus = this.ctx.createGain();
+      this.bgmBus.gain.value = BGM_VOL;
+      this.bgmBus.connect(this.master);
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) this.ctx.suspend();
         else this.ctx.resume();
@@ -57,7 +64,12 @@ class Sfx {
     }
   }
 
-  tone(freq, start, dur, { type = 'sine', vol = 0.3, slide = null } = {}) {
+  duck(on) {
+    if (!this.bgmBus) return;
+    this.bgmBus.gain.setTargetAtTime(on ? BGM_DUCKED : BGM_VOL, this.ctx.currentTime, 0.08);
+  }
+
+  tone(freq, start, dur, { type = 'sine', vol = 0.3, slide = null, dest = null } = {}) {
     const ctx = this.ctx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -67,7 +79,7 @@ class Sfx {
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(vol, start + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-    osc.connect(gain).connect(this.master);
+    osc.connect(gain).connect(dest || this.master);
     osc.start(start);
     osc.stop(start + dur + 0.02);
   }
@@ -126,6 +138,21 @@ class Sfx {
     });
   }
 
+  // 오답: 무섭지 않게 부드러운 두 음
+  wrong() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.tone(330, t, 0.14, { type: 'triangle', vol: 0.25 });
+    this.tone(247, t + 0.14, 0.22, { type: 'triangle', vol: 0.25 });
+  }
+
+  success() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [523, 659, 784].forEach((f, i) => this.tone(f, t + i * 0.12, 0.16, { type: 'square', vol: 0.12 }));
+    for (const f of [523, 659, 784, 1047]) this.tone(f, t + 0.4, 0.6, { type: 'triangle', vol: 0.18 });
+  }
+
   click() {
     if (!this.ctx) return;
     this.tone(660, this.ctx.currentTime, 0.08, { type: 'triangle', vol: 0.25 });
@@ -151,10 +178,10 @@ class Sfx {
     while (this.nextTime < this.ctx.currentTime + 0.25) {
       const i = this.step % MELODY.length;
       const note = MELODY[i];
-      if (note) this.tone(midiToFreq(note), this.nextTime, eighth * 0.9, { type: 'square', vol: 0.05 });
+      if (note) this.tone(midiToFreq(note), this.nextTime, eighth * 0.9, { type: 'square', vol: 0.05, dest: this.bgmBus });
       if (i % 2 === 0) {
         const bass = BASS[(i / 2) % BASS.length];
-        this.tone(midiToFreq(bass), this.nextTime, eighth * 1.8, { type: 'triangle', vol: 0.12 });
+        this.tone(midiToFreq(bass), this.nextTime, eighth * 1.8, { type: 'triangle', vol: 0.12, dest: this.bgmBus });
       }
       this.nextTime += eighth;
       this.step++;
