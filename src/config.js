@@ -26,6 +26,8 @@ export const PAIR_CHANCE = 0.7;
 export const MISSION_AREAS = ['attention', 'number', 'hangul', 'memory'];
 // 미션 성공 보너스 별
 export const MISSION_BONUS = 3;
+// 한 판의 미션 개수: 이만큼 해내면 한 판이 끝난다 (시작 화면에서 조절)
+export const MISSION_GOAL = { default: 5, min: 3, max: 10 };
 
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
 export const HIT_DX = 80;
@@ -54,4 +56,5 @@ export const STORAGE_KEYS = {
   car: 'cargame.car',
   best: 'cargame.best',
   muted: 'cargame.muted',
+  missionGoal: 'cargame.missionGoal',
 };

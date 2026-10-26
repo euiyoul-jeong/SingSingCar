@@ -20,6 +20,7 @@ import { voice } from '../audio/Voice.js';
 import { MissionDirector } from '../missions/missions.js';
 import { PlayerCar } from '../objects/PlayerCar.js';
 import { Spawner } from '../objects/Spawner.js';
+import { loadMissionGoal } from '../storage.js';
 import { Hud } from '../ui/Hud.js';
 import { MissionPanel } from '../ui/MissionPanel.js';
 import { makeSpecView } from '../ui/specView.js';
@@ -34,6 +35,7 @@ export class GameScene extends Phaser.Scene {
 
   init(data) {
     this.carKey = data.carKey || 'car_red';
+    this.missionGoal = data.missionGoal ?? loadMissionGoal();
     this.stars = 0;
     this.level = 0;
     this.untilDecor = 0;
@@ -62,6 +64,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setDepth(70);
     this.hud = new Hud(this, { onPause: () => this.pauseGame() });
+    this.hud.setMission(1, this.missionGoal);
     this.panel = new MissionPanel(this);
 
     // 화면 왼쪽 절반 = 왼쪽, 오른쪽 절반 = 오른쪽. 버튼 위를 누른 건 무시
@@ -101,7 +104,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   pauseGame() {
-    if (!this.scene.isActive()) return;
+    // 다 끝나고 결과 화면으로 넘어가는 중에는 멈춤 창을 띄우지 않는다
+    if (!this.scene.isActive() || this.phase === 'finished') return;
     sfx.stopBgm();
     voice.stop();
     this.scene.pause();
@@ -116,14 +120,21 @@ export class GameScene extends Phaser.Scene {
     this.phase = 'intro';
     this.rowsSinceGood = 0;
     this.level = Math.min(SPEED_STEPS.length - 1, Math.floor(this.director.completed / MISSIONS_PER_SPEED_UP));
+    const current = this.director.completed + 1;
+    const last = current === this.missionGoal;
+    this.hud.setMission(current, this.missionGoal);
     this.panel.hide();
-    voice.say(m.intro.speech);
-    this.showIntro(m.intro, () => {
-      this.phase = 'play';
-      this.panel.show(m.panel());
-      if (m.intro.after) voice.say(m.intro.after);
-      this.spawner.start((n) => this.rowItems(n));
-    });
+    voice.say(last ? `마지막 미션! ${m.intro.speech}` : m.intro.speech);
+    this.showIntro(
+      m.intro,
+      () => {
+        this.phase = 'play';
+        this.panel.show(m.panel());
+        if (m.intro.after) voice.say(m.intro.after);
+        this.spawner.start((n) => this.rowItems(n));
+      },
+      last,
+    );
   }
 
   // 빈 차선 수에 맞춰 이번 줄에 놓을 토큰을 정한다. 정답이 두 줄 넘게 안 나오는 일은 없게 한다
@@ -201,10 +212,43 @@ export class GameScene extends Phaser.Scene {
     this.floatText(GAME_W / 2, 600, `${praise}  ★+${MISSION_BONUS}`, '#ffeb3b', 60, 1400);
     voice.say([say, '미션 성공!', praise].filter(Boolean).join(' '));
 
-    this.time.delayedCall(2900, () => this.startMission());
+    const allDone = this.director.completed >= this.missionGoal;
+    this.time.delayedCall(2900, () => (allDone ? this.finishGame() : this.startMission()));
   }
 
-  showIntro(intro, onDone) {
+  // 정해진 미션을 모두 해내면 한 판이 끝난다
+  finishGame() {
+    this.phase = 'finished';
+    this.panel.hide();
+    sfx.success();
+    for (let i = 0; i < 8; i++) {
+      this.time.delayedCall(i * 160, () =>
+        this.sparks.explode(28, Phaser.Math.Between(120, 600), Phaser.Math.Between(300, 900)),
+      );
+    }
+    const t = makeText(this, GAME_W / 2, 560, '모든 미션\n완료!', 120, '#ffeb3b', {
+      stroke: '#37474f',
+      strokeThickness: 14,
+      lineSpacing: 10,
+    })
+      .setDepth(80)
+      .setScale(0.3);
+    this.tweens.add({ targets: t, scale: 1, duration: 450, ease: 'Back.Out' });
+    this.tweens.add({ targets: t, angle: { from: -4, to: 4 }, duration: 400, yoyo: true, repeat: -1, delay: 450 });
+    voice.say('오늘의 미션을 모두 해냈어요!');
+
+    this.time.delayedCall(2800, () =>
+      this.scene.start('Result', {
+        stars: this.stars,
+        carKey: this.carKey,
+        missions: this.director.completed,
+        goal: this.missionGoal,
+        cleared: true,
+      }),
+    );
+  }
+
+  showIntro(intro, onDone, last = false) {
     const shows = intro.show ?? [];
     const h = shows.length ? 500 : 360;
     const c = this.add.container(GAME_W / 2, 650).setDepth(60).setScale(0.5).setAlpha(0);
@@ -216,9 +260,10 @@ export class GameScene extends Phaser.Scene {
     bg.fillRoundedRect(-310, -h / 2, 620, h, 44);
     bg.lineStyle(8, 0xff9800);
     bg.strokeRoundedRect(-310, -h / 2, 620, h, 44);
-    bg.fillStyle(0xff9800, 1);
-    bg.fillRoundedRect(-110, -h / 2 - 36, 220, 72, 36);
-    const badge = makeText(this, 0, -h / 2, '미션!', 46, '#ffffff');
+    const badgeW = last ? 340 : 220;
+    bg.fillStyle(last ? 0xe91e63 : 0xff9800, 1);
+    bg.fillRoundedRect(-badgeW / 2, -h / 2 - 36, badgeW, 72, 36);
+    const badge = makeText(this, 0, -h / 2, last ? '마지막 미션!' : '미션!', 46, '#ffffff');
     const label = makeText(this, 0, shows.length ? -h / 2 + 130 : 10, intro.text, 50, '#37474f', {
       lineSpacing: 12,
     });

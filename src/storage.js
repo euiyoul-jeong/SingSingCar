@@ -1,3 +1,12 @@
+import { MISSION_GOAL, STORAGE_KEYS } from './config.js';
+
+// 저장된 미션 개수. 없거나 범위를 벗어나면 기본값/끝값으로 맞춘다
+export function loadMissionGoal() {
+  const n = Number(storage.get(STORAGE_KEYS.missionGoal));
+  if (!Number.isFinite(n) || n === 0) return MISSION_GOAL.default;
+  return Math.min(MISSION_GOAL.max, Math.max(MISSION_GOAL.min, Math.round(n)));
+}
+
 // 사생활 보호 모드 등에서 localStorage가 막혀 있어도 게임은 돌아가야 한다
 export const storage = {
   get(key) {

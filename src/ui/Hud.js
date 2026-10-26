@@ -17,6 +17,14 @@ export class Hud {
     this.starIcon = scene.add.image(78, 70, 'star').setScale(0.75).setDepth(DEPTH);
     this.starText = makeText(scene, 130, 72, '0', 64, '#37474f').setOrigin(0, 0.5).setDepth(DEPTH);
 
+    // 한 판의 미션 진행: "미션 2/5"
+    const pill = scene.add.graphics().setDepth(DEPTH);
+    pill.fillStyle(0xffffff, 0.9);
+    pill.fillRoundedRect(278, 32, 190, 76, 38);
+    pill.lineStyle(5, 0xff9800);
+    pill.strokeRoundedRect(278, 32, 190, 76, 38);
+    this.missionText = makeText(scene, 373, 71, '', 40, '#37474f').setDepth(DEPTH);
+
     const pause = scene.add.image(650, 70, 'icon_pause').setDepth(DEPTH).setInteractive({ useHandCursor: true });
     pause.on('pointerup', () => onPause());
 
@@ -29,6 +37,10 @@ export class Hud {
       if (sfx.muted) voice.stop();
       sound.setTexture(sfx.muted ? 'icon_sound_off' : 'icon_sound_on');
     });
+  }
+
+  setMission(current, goal) {
+    this.missionText.setText(`미션 ${current}/${goal}`);
   }
 
   setStars(n) {
