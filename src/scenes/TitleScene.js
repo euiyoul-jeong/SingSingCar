@@ -253,8 +253,8 @@ export class TitleScene extends Phaser.Scene {
     this.subtitle.setText(SUBTITLE[this.mode]);
     if (this.goalParts) this.refreshGoal();
     const dodge = this.mode === 'dodge';
-    const best = Number(storage.get(dodge ? STORAGE_KEYS.bestDodge : STORAGE_KEYS.best)) || 0;
-    this.bestText.setText(best > 0 ? (dodge ? `최고 기록  ⏱ ${best.toFixed(1)}초` : `최고 기록  ★ ${best}`) : '');
+    const best = Number(storage.get(dodge ? STORAGE_KEYS.bestDodgeM : STORAGE_KEYS.best)) || 0;
+    this.bestText.setText(best > 0 ? (dodge ? `최고 기록  🏁 ${best.toLocaleString('ko-KR')}m` : `최고 기록  ★ ${best}`) : '');
   }
 
   start() {

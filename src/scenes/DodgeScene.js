@@ -13,9 +13,9 @@ const STAR_SPEC = { t: 'star', id: 'star' };
 
 // 피하기 놀이: 미션 없이 차만 피한다. 미션 놀이(GameScene)와 규칙이 다르다.
 // - 별(생명) 3개로 시작, 부딪히면 -1, 0개면 끝
-// - 15~25초마다 먹을 별이 하나 나온다 (최대 5개)
-// - 20초마다 빨라진다
-// - 점수 = 버틴 시간
+// - 30초마다 먹을 별이 하나 나온다 (최대 5개)
+// - 20초마다 빨라진다 (최대 속도는 느림·보통·빠름 모두 같다)
+// - 점수 = 달린 거리(m). 빠르게 달릴수록 같은 시간에 점수가 더 오른다
 export class DodgeScene extends Phaser.Scene {
   constructor() {
     super('Dodge');
@@ -25,10 +25,11 @@ export class DodgeScene extends Phaser.Scene {
     this.carKey = data.carKey || 'car_red';
     this.speedKey = data.speed ?? loadSpeed();
     this.speedSteps = SPEED_PRESETS[this.speedKey].steps;
-    this.speedCap = this.speedSteps.at(-1) * DODGE.speedCapFactor;
+    this.speedCap = DODGE.speedCap;
     this.lives = DODGE.startLives;
     this.level = 0;
     this.playMs = 0;
+    this.distancePx = 0;
     this.untilStarMs = this.nextStarDelay();
     this.phase = 'ready'; // ready → play → over
   }
@@ -37,7 +38,7 @@ export class DodgeScene extends Phaser.Scene {
     return Phaser.Math.Between(...DODGE.starEveryMs);
   }
 
-  // 속도 표 5단계까지는 표대로, 그 뒤로는 단계마다 +5%씩 (최대값 × 1.25에서 멈춤)
+  // 속도 표 5단계까지는 표대로, 그 뒤로는 단계마다 표 최대값의 +5%씩 (공통 최대 속도에서 멈춤)
   speedFor(level) {
     const steps = this.speedSteps;
     if (level < steps.length) return steps[level];
@@ -61,7 +62,7 @@ export class DodgeScene extends Phaser.Scene {
       .setDepth(70);
     this.hud = new Hud(this, { onPause: () => this.pauseGame() });
     this.hud.setStars(this.lives);
-    this.hud.setCenter('⏱ 0초');
+    this.hud.setCenter('🚗 0m');
 
     this.input.on('pointerdown', (pointer, over) => {
       if (over.length || this.phase === 'over') return;
@@ -123,9 +124,12 @@ export class DodgeScene extends Phaser.Scene {
         this.popup('더 빨리!', '#4fc3f7');
         sfx.honk();
       }
-      this.hud.setCenter(`⏱ ${Math.floor(this.playMs / 1000)}초`);
     }
     const dy = this.speedFor(this.level) * dt;
+    if (this.phase === 'play') {
+      this.distancePx += dy;
+      this.hud.setCenter(`🚗 ${this.meters().toLocaleString('ko-KR')}m`);
+    }
     this.scenery.update(dy * BG_SPEED_FACTOR);
     this.spawner.update(dy, this.level);
     this.checkHits();
@@ -179,12 +183,17 @@ export class DodgeScene extends Phaser.Scene {
     this.spawner.stop();
     this.hud.setDanger(false);
     sfx.stopBgm();
-    const seconds = Math.round(this.playMs / 100) / 10;
-    this.time.delayedCall(DODGE.endDelayMs, () => this.scene.start('Result', this.resultData(seconds)));
+    const data = this.resultData();
+    this.time.delayedCall(DODGE.endDelayMs, () => this.scene.start('Result', data));
   }
 
-  resultData(seconds = Math.round(this.playMs / 100) / 10) {
-    return { mode: 'dodge', seconds, carKey: this.carKey, speed: this.speedKey };
+  meters() {
+    return Math.floor(this.distancePx / DODGE.pxPerMeter);
+  }
+
+  resultData() {
+    const seconds = Math.round(this.playMs / 100) / 10;
+    return { mode: 'dodge', meters: this.meters(), seconds, carKey: this.carKey, speed: this.speedKey };
   }
 }
 

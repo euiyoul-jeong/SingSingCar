@@ -11,6 +11,7 @@ export class ResultScene extends Phaser.Scene {
 
   init(data) {
     this.mode = data.mode || 'mission';
+    this.meters = data.meters ?? 0; // 피하기 놀이: 달린 거리(점수)
     this.seconds = data.seconds ?? 0; // 피하기 놀이: 버틴 시간
     this.stars = data.stars ?? 0;
     this.missions = data.missions ?? 0;
@@ -49,22 +50,24 @@ export class ResultScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ENTER', () => this.replay());
   }
 
-  // 피하기 놀이: 버틴 시간이 점수, 최고 기록은 따로(cargame.bestDodge)
+  // 피하기 놀이: 달린 거리가 점수, 최고 기록은 따로(cargame.bestDodgeM)
   showDodgeResult() {
-    const best = Number(storage.get(STORAGE_KEYS.bestDodge)) || 0;
-    const newBest = this.seconds > best;
-    if (newBest) storage.set(STORAGE_KEYS.bestDodge, this.seconds);
+    const best = Number(storage.get(STORAGE_KEYS.bestDodgeM)) || 0;
+    const newBest = this.meters > best;
+    if (newBest) storage.set(STORAGE_KEYS.bestDodgeM, this.meters);
+    const m = (n) => `${n.toLocaleString('ko-KR')}m`;
 
     const stroke = { stroke: '#37474f', strokeThickness: 10 };
     makeText(this, GAME_W / 2, 160, '잘 피했어요!', 96, '#ffeb3b', stroke);
-    makeText(this, GAME_W / 2, 360, '⏱', 150, '#ffffff');
-    makeText(this, GAME_W / 2, 560, `${this.seconds.toFixed(1)}초 버텼어요!`, 76, '#ffffff', stroke);
+    makeText(this, GAME_W / 2, 340, '🏁', 150, '#ffffff');
+    makeText(this, GAME_W / 2, 520, `${m(this.meters)} 달렸어요!`, 76, '#ffffff', stroke);
+    makeText(this, GAME_W / 2, 600, `⏱ ${this.seconds.toFixed(1)}초 버텼어요`, 44, '#37474f');
     if (newBest) {
-      const badge = makeText(this, GAME_W / 2, 680, '새 기록!', 64, '#ff4081', { stroke: '#ffffff', strokeThickness: 10 });
+      const badge = makeText(this, GAME_W / 2, 700, '새 기록!', 64, '#ff4081', { stroke: '#ffffff', strokeThickness: 10 });
       this.tweens.add({ targets: badge, scale: 1.15, duration: 400, yoyo: true, repeat: -1 });
       sfx.praise();
     } else if (best > 0) {
-      makeText(this, GAME_W / 2, 680, `최고 기록  ⏱ ${best.toFixed(1)}초`, 48, '#37474f');
+      makeText(this, GAME_W / 2, 700, `최고 기록  🏁 ${m(best)}`, 48, '#37474f');
     }
   }
 

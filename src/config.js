@@ -12,9 +12,9 @@ export const PLAYER_Y = 1060;
 // 차·토큰이 다가오는 속도(px/초). 시작 화면에서 고르고, 미션을 2개 해낼 때마다
 // 한 단계씩 빨라지며 마지막 단계에서 멈춘다
 export const SPEED_PRESETS = {
-  slow: { name: '느림', steps: [230, 265, 300, 335, 370] },
-  normal: { name: '보통', steps: [290, 338, 385, 433, 480] },
-  fast: { name: '빠름', steps: [360, 415, 470, 525, 580] },
+  slow: { name: '느림', steps: [300, 345, 390, 435, 480] },
+  normal: { name: '보통', steps: [375, 440, 500, 565, 625] },
+  fast: { name: '빠름', steps: [470, 540, 610, 680, 755] },
 };
 export const DEFAULT_SPEED = 'normal';
 export const MISSIONS_PER_SPEED_UP = 2;
@@ -47,12 +47,13 @@ export const DEFAULT_MODE = 'mission';
 export const DODGE = {
   startLives: 3, // 별 3개로 시작, 0개면 끝
   maxLives: 5, // 5개면 먹을 별이 더 안 나온다
-  starEveryMs: [15000, 25000], // 먹을 별이 나오는 간격(무작위)
+  starEveryMs: [30000, 30000], // 먹을 별이 나오는 간격 [최소, 최대]
   levelUpMs: 20000, // 이 시간마다 한 단계 빨라진다
   speedUpAfterMax: 0.05, // 속도 표의 5단계를 넘으면 단계마다 +5%
-  speedCapFactor: 1.25, // 최대 = 속도 표 최대값 × 1.25
+  speedCap: 945, // 최대 속도. 느림·보통·빠름 모두 같다
   twoCarChance: [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4], // 단계별, 마지막 값에서 멈춤
   endDelayMs: 1000, // 별이 다 없어진 뒤 결과 화면까지
+  pxPerMeter: 10, // 점수(달린 거리): 화면 10px = 1m
 };
 
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
@@ -85,5 +86,5 @@ export const STORAGE_KEYS = {
   missionGoal: 'cargame.missionGoal',
   speed: 'cargame.speed',
   mode: 'cargame.mode',
-  bestDodge: 'cargame.bestDodge',
+  bestDodgeM: 'cargame.bestDodgeM', // 피하기 최고 기록(m). 예전 bestDodge(초)는 쓰지 않는다
 };

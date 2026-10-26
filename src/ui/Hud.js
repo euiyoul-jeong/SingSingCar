@@ -43,9 +43,11 @@ export class Hud {
     this.setCenter(`미션 ${current}/${goal}`);
   }
 
-  // 가운데 알약 글자 (미션 놀이: "미션 2/5", 피하기 놀이: "⏱ 32초")
+  // 가운데 알약 글자 (미션 놀이: "미션 2/5", 피하기 놀이: "🚗 1,234m")
   setCenter(text) {
-    if (this.missionText.text !== text) this.missionText.setText(text);
+    if (this.missionText.text === text) return;
+    this.missionText.setText(text);
+    this.missionText.setScale(Math.min(1, 170 / this.missionText.width)); // 길어지면 알약 안에 맞게 줄인다
   }
 
   // 별(생명)이 1개만 남았을 때 별 칸을 빨갛게 깜빡인다
