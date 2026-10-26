@@ -2,12 +2,13 @@
 
 만 5세용 자동차 피하기 + 두뇌 발달 미션 게임 (Phaser 3 + Vite, Capacitor로 Android 앱)
 
-## 다운로드 / 플레이
+## 바로 플레이 / 앱 받기
 
-**https://euiyoul-jeong.github.io/SingSingCar/**
+**https://euiyoul-jeong.github.io/SingSingCar/** — 들어가면 바로 게임이 시작된다.
 
-- 📱 안드로이드 앱: 위 페이지의 "안드로이드 앱 받기" (항상 최신 `SingSingCar.apk`)
-- ▶ 웹 버전: https://euiyoul-jeong.github.io/SingSingCar/play/
+- PC: 게임 오른쪽 패널의 **QR코드**를 폰으로 찍으면 APK가 바로 받아진다
+- 폰: 게임 아래 **📱 안드로이드 앱 받기** 띠를 누르면 다운로드 창
+- APK 직접 링크(항상 최신): https://github.com/euiyoul-jeong/SingSingCar/releases/latest/download/SingSingCar.apk
 
 앱 설치 방법: APK를 내려받아 열고 → "알 수 없는 앱 설치" 허용 → Play 프로텍트 경고가 나오면 "무시하고 설치".
 
@@ -15,7 +16,7 @@
 
 - `main`에 푸시하면 GitHub Actions가 자동으로
   - `.github/workflows/android.yml`: 서명된 APK를 만들어 릴리스 `v1.0.<빌드번호>`에 첨부
-  - `.github/workflows/pages.yml`: 다운로드 페이지(`site/index.html`)와 웹 버전(`/play/`)을 GitHub Pages에 배포
+  - `.github/workflows/pages.yml`: 웹 게임을 GitHub Pages 루트에 배포 (앱 받기 패널은 웹에서만, `src/web/downloadUi.js`)
 - 서명 키는 GitHub Secrets(`ANDROID_KEYSTORE_BASE64` 등)에 있고, 백업은 개발 PC의 `문서\SingSingCar-서명키\`에만 있다. **잃어버리면 기존 앱 위에 업데이트할 수 없다.**
 - 아이콘 다시 만들기: `node scripts/make-icons.mjs && npx capacitor-assets generate --android`
 

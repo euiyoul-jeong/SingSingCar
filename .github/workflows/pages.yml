@@ -1,6 +1,6 @@
-name: 다운로드 페이지 배포
+name: 웹 게임 배포
 
-# 다운로드 페이지(루트)와 게임 웹 버전(/play/)을 GitHub Pages에 올린다.
+# 게임 웹 버전을 GitHub Pages 루트에 올린다. 웹에서는 게임 옆(PC)·아래(폰)에 APK 받기 QR·링크가 붙는다.
 on:
   push:
     branches: [main]
@@ -35,14 +35,11 @@ jobs:
       - name: 웹 빌드
         run: npm run build
 
-      - name: 다운로드 페이지 만들기
-        run: node scripts/build-site.mjs
-
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
       - id: deployment
         uses: actions/deploy-pages@v4
