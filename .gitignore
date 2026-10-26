@@ -1,2 +1,8 @@
 node_modules/
 dist/
+
+# 안드로이드 서명 키는 절대 올리지 않는다
+*.jks
+*.keystore
+# 다운로드 페이지 빌드 결과
+_site/

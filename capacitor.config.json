@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.euiyouljeong.singsingcar",
+  "appName": "씽씽 자동차",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#2e7d32"
+  }
+}

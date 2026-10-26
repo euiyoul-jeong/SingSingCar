@@ -1,0 +1,71 @@
+name: 안드로이드 APK 빌드
+
+# main에 올릴 때마다 서명된 APK를 만들어 릴리스(v1.0.<빌드번호>)에 붙인다.
+# 다운로드 페이지는 releases/latest/download/SingSingCar.apk 로 항상 최신 APK를 가리킨다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 웹 빌드
+        run: npm run build
+
+      - name: 안드로이드 프로젝트에 웹 결과 복사
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: 서명 키 복원
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.jks
+
+      - name: APK 빌드
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_FILE: release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 파일 이름 정리
+        run: cp android/app/build/outputs/apk/release/app-release.apk SingSingCar.apk
+
+      - name: 릴리스에 APK 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION_NAME }}
+          name: 씽씽 자동차 v${{ env.VERSION_NAME }}
+          body: |
+            안드로이드 폰에서 SingSingCar.apk를 내려받아 설치하세요.
+            다운로드 페이지: https://euiyoul-jeong.github.io/SingSingCar/
+          files: SingSingCar.apk
+          make_latest: true

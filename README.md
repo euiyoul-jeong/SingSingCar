@@ -1,6 +1,23 @@
 # 씽씽 자동차
 
-만 5세용 자동차 피하기 게임 (Phaser 3 + Vite, 웹 우선 → 이후 Capacitor로 Android)
+만 5세용 자동차 피하기 + 두뇌 발달 미션 게임 (Phaser 3 + Vite, Capacitor로 Android 앱)
+
+## 다운로드 / 플레이
+
+**https://euiyoul-jeong.github.io/SingSingCar/**
+
+- 📱 안드로이드 앱: 위 페이지의 "안드로이드 앱 받기" (항상 최신 `SingSingCar.apk`)
+- ▶ 웹 버전: https://euiyoul-jeong.github.io/SingSingCar/play/
+
+앱 설치 방법: APK를 내려받아 열고 → "알 수 없는 앱 설치" 허용 → Play 프로텍트 경고가 나오면 "무시하고 설치".
+
+## 배포 구조
+
+- `main`에 푸시하면 GitHub Actions가 자동으로
+  - `.github/workflows/android.yml`: 서명된 APK를 만들어 릴리스 `v1.0.<빌드번호>`에 첨부
+  - `.github/workflows/pages.yml`: 다운로드 페이지(`site/index.html`)와 웹 버전(`/play/`)을 GitHub Pages에 배포
+- 서명 키는 GitHub Secrets(`ANDROID_KEYSTORE_BASE64` 등)에 있고, 백업은 개발 PC의 `문서\SingSingCar-서명키\`에만 있다. **잃어버리면 기존 앱 위에 업데이트할 수 없다.**
+- 아이콘 다시 만들기: `node scripts/make-icons.mjs && npx capacitor-assets generate --android`
 
 ## 실행
 
