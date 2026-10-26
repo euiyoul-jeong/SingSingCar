@@ -6,6 +6,7 @@ import { sfx } from './audio/Sfx.js';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
+import { DodgeScene } from './scenes/DodgeScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
 import { mountDownloadUi } from './web/downloadUi.js';
@@ -16,8 +17,10 @@ const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 if (!Capacitor.isNativePlatform() && !IOS) {
   mountDownloadUi({
     onOpen: () => {
-      const g = window.__game?.scene.getScene('Game');
-      if (g?.scene.isActive()) g.pauseGame();
+      for (const key of ['Game', 'Dodge']) {
+        const s = window.__game?.scene.getScene(key);
+        if (s?.scene.isActive()) s.pauseGame();
+      }
     },
   });
 }
@@ -39,15 +42,16 @@ const game = new Phaser.Game({
   input: {
     activePointers: 3,
   },
-  scene: [BootScene, TitleScene, GameScene, PauseScene, ResultScene],
+  scene: [BootScene, TitleScene, GameScene, DodgeScene, PauseScene, ResultScene],
 });
 
-// 안드로이드 뒤로 가기: 게임 중이면 멈춤, 멈춤 창이면 계속, 결과면 시작 화면, 시작 화면이면 앱 종료
+// 안드로이드 뒤로 가기: 놀이 중이면 멈춤, 멈춤 창이면 계속, 결과면 시작 화면, 시작 화면이면 앱 종료
 if (Capacitor.isNativePlatform()) {
   App.addListener('backButton', () => {
     const active = game.scene.getScenes(true).map((s) => s.scene.key);
     if (active.includes('Pause')) game.scene.getScene('Pause').resumeGame();
     else if (active.includes('Game')) game.scene.getScene('Game').pauseGame();
+    else if (active.includes('Dodge')) game.scene.getScene('Dodge').pauseGame();
     else if (active.includes('Result')) game.scene.getScene('Result').scene.start('Title');
     else App.exitApp();
   });

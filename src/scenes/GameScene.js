@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import {
   BG_SPEED_FACTOR,
-  GAME_H,
   GAME_W,
   HIT_DX,
   HIT_PAD,
@@ -10,8 +9,6 @@ import {
   MISSIONS_PER_SPEED_UP,
   PAIR_CHANCE,
   PRAISE,
-  ROAD_W,
-  ROAD_X,
   SPEED_PRESETS,
   TOKEN_DX,
   TOKEN_DY,
@@ -20,6 +17,7 @@ import { sfx } from '../audio/Sfx.js';
 import { voice } from '../audio/Voice.js';
 import { MissionDirector } from '../missions/missions.js';
 import { PlayerCar } from '../objects/PlayerCar.js';
+import { RoadScenery } from '../objects/RoadScenery.js';
 import { Spawner } from '../objects/Spawner.js';
 import { loadMissionGoal, loadSpeed } from '../storage.js';
 import { Hud } from '../ui/Hud.js';
@@ -28,16 +26,6 @@ import { makeSpecView } from '../ui/specView.js';
 import { makeText } from '../ui/widgets.js';
 
 const REMINDER_COOLDOWN_MS = 3500;
-
-// 바람 줄무늬는 양쪽 잔디와 갓길에만 (가운데 차선의 토큰을 가리지 않게)
-const STREAK_ZONES = [
-  [15, 105],
-  [615, 705],
-  [130, 145],
-  [575, 590],
-];
-const STREAK_COUNT = 12;
-const STREAK_SPEED = 1.5; // 배경보다 이만큼 더 빠르게
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -51,8 +39,6 @@ export class GameScene extends Phaser.Scene {
     this.speedSteps = SPEED_PRESETS[this.speedKey].steps;
     this.stars = 0;
     this.level = 0;
-    this.untilDecor = 0;
-    this.decor = [];
     this.director = new MissionDirector(MISSION_AREAS);
     this.mission = null;
     this.phase = 'ready';
@@ -61,10 +47,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    this.road = this.add.tileSprite(ROAD_X + ROAD_W / 2, GAME_H / 2, ROAD_W, GAME_H, 'road');
-    this.grassL = this.add.tileSprite(ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass');
-    this.grassR = this.add.tileSprite(GAME_W - ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass').setFlipX(true);
-    this.createStreaks();
+    this.scenery = new RoadScenery(this);
 
     this.player = new PlayerCar(this, this.carKey);
     this.spawner = new Spawner(this, this.player);
@@ -313,38 +296,11 @@ export class GameScene extends Phaser.Scene {
   update(_time, delta) {
     const dt = Math.min(delta, 50) / 1000;
     const dy = this.speedSteps[this.level] * dt; // 차·토큰 (난이도)
-    const bgDy = dy * BG_SPEED_FACTOR; // 도로·잔디·나무 (속도감)
-    this.road.tilePositionY -= bgDy;
-    this.grassL.tilePositionY -= bgDy;
-    this.grassR.tilePositionY -= bgDy;
-    this.updateDecor(bgDy);
-    this.updateStreaks(bgDy * STREAK_SPEED);
+    this.scenery.update(dy * BG_SPEED_FACTOR); // 도로·잔디·나무 (속도감)
     this.spawner.update(dy, this.level);
     this.checkHits();
   }
 
-  createStreaks() {
-    this.streaks = Array.from({ length: STREAK_COUNT }, () => {
-      const s = this.add.rectangle(0, 0, 5, 100, 0xffffff).setDepth(3);
-      this.placeStreak(s, Phaser.Math.Between(0, GAME_H));
-      return s;
-    });
-  }
-
-  placeStreak(s, y) {
-    const [from, to] = Phaser.Utils.Array.GetRandom(STREAK_ZONES);
-    s.setPosition(Phaser.Math.Between(from, to), y);
-    s.setDisplaySize(Phaser.Math.Between(4, 6), Phaser.Math.Between(60, 140));
-    s.setAlpha(Phaser.Math.FloatBetween(0.35, 0.6));
-  }
-
-  // 화면 아래로 나간 줄무늬는 새로 만들지 않고 위로 돌려 다시 쓴다
-  updateStreaks(dy) {
-    for (const s of this.streaks) {
-      s.y += dy;
-      if (s.y - s.displayHeight / 2 > GAME_H) this.placeStreak(s, -Phaser.Math.Between(80, 400));
-    }
-  }
 
   checkHits() {
     const p = this.player;
@@ -375,22 +331,6 @@ export class GameScene extends Phaser.Scene {
     this.floatText(this.player.x, this.player.y - 120, '쿵!', '#ff7043', 72);
   }
 
-  updateDecor(dy) {
-    this.untilDecor -= dy;
-    if (this.untilDecor <= 0) {
-      this.untilDecor = Phaser.Math.Between(200, 420);
-      const left = Math.random() < 0.5;
-      const x = left ? Phaser.Math.Between(30, 85) : Phaser.Math.Between(635, 690);
-      const key = Math.random() < 0.6 ? 'tree' : 'flower';
-      this.decor.push(this.add.image(x, -60, key).setDepth(2));
-    }
-    this.decor = this.decor.filter((d) => {
-      d.y += dy;
-      if (d.y < GAME_H + 80) return true;
-      d.destroy();
-      return false;
-    });
-  }
 
   showHint() {
     const style = { stroke: '#37474f', strokeThickness: 8 };

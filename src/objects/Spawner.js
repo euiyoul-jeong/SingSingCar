@@ -17,6 +17,8 @@ export class Spawner {
     this.enabled = false;
     this.itemProvider = null;
     this.untilNextRow = FIRST_ROW_GAP;
+    // 단계별 "한 줄에 차 2대" 확률. 피하기 놀이는 자기 표로 바꿔 끼운다
+    this.twoCarChance = (level) => TWO_CAR_CHANCE[level];
   }
 
   start(itemProvider) {
@@ -55,7 +57,7 @@ export class Spawner {
 
   spawnRow(level) {
     let blocked;
-    if (Math.random() < TWO_CAR_CHANCE[level]) {
+    if (Math.random() < this.twoCarChance(level)) {
       // 2대일 때 빈 차선은 내 차에서 한 칸 이내로 둔다 (양 끝을 가로지르지 않아도 되게)
       const near = LANES.filter((l) => Math.abs(l - this.player.lane) <= 1);
       const free = Phaser.Utils.Array.GetRandom(near);

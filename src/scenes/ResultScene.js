@@ -10,6 +10,8 @@ export class ResultScene extends Phaser.Scene {
   }
 
   init(data) {
+    this.mode = data.mode || 'mission';
+    this.seconds = data.seconds ?? 0; // 피하기 놀이: 버틴 시간
     this.stars = data.stars ?? 0;
     this.missions = data.missions ?? 0;
     this.goal = data.goal;
@@ -19,13 +21,54 @@ export class ResultScene extends Phaser.Scene {
   }
 
   replay() {
-    this.scene.start('Game', { carKey: this.carKey, missionGoal: this.goal, speed: this.speed });
+    if (this.mode === 'dodge') this.scene.start('Dodge', { carKey: this.carKey, speed: this.speed });
+    else this.scene.start('Game', { carKey: this.carKey, missionGoal: this.goal, speed: this.speed });
   }
 
   create() {
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x81d4fa);
     this.add.rectangle(GAME_W / 2, GAME_H - 160, GAME_W, 320, 0x7cc84a);
 
+    if (this.mode === 'dodge') this.showDodgeResult();
+    else this.showMissionResult();
+
+    makeButton(this, GAME_W / 2, 830, '다시 하기', {
+      color: 0x43a047,
+      width: 440,
+      onClick: () => this.replay(),
+    });
+    makeButton(this, GAME_W / 2, 1000, '차 바꾸기', {
+      color: 0x1e88e5,
+      width: 440,
+      onClick: () => this.scene.start('Title'),
+    });
+
+    const car = this.add.image(-100, 1215, this.carKey).setAngle(90).setScale(0.7);
+    this.tweens.add({ targets: car, x: GAME_W + 100, duration: 3500, repeat: -1 });
+
+    this.input.keyboard.on('keydown-ENTER', () => this.replay());
+  }
+
+  // 피하기 놀이: 버틴 시간이 점수, 최고 기록은 따로(cargame.bestDodge)
+  showDodgeResult() {
+    const best = Number(storage.get(STORAGE_KEYS.bestDodge)) || 0;
+    const newBest = this.seconds > best;
+    if (newBest) storage.set(STORAGE_KEYS.bestDodge, this.seconds);
+
+    const stroke = { stroke: '#37474f', strokeThickness: 10 };
+    makeText(this, GAME_W / 2, 160, '잘 피했어요!', 96, '#ffeb3b', stroke);
+    makeText(this, GAME_W / 2, 360, '⏱', 150, '#ffffff');
+    makeText(this, GAME_W / 2, 560, `${this.seconds.toFixed(1)}초 버텼어요!`, 76, '#ffffff', stroke);
+    if (newBest) {
+      const badge = makeText(this, GAME_W / 2, 680, '새 기록!', 64, '#ff4081', { stroke: '#ffffff', strokeThickness: 10 });
+      this.tweens.add({ targets: badge, scale: 1.15, duration: 400, yoyo: true, repeat: -1 });
+      sfx.praise();
+    } else if (best > 0) {
+      makeText(this, GAME_W / 2, 680, `최고 기록  ⏱ ${best.toFixed(1)}초`, 48, '#37474f');
+    }
+  }
+
+  showMissionResult() {
     const best = Number(storage.get(STORAGE_KEYS.best)) || 0;
     const newBest = this.stars > best;
     if (newBest) storage.set(STORAGE_KEYS.best, this.stars);
@@ -63,21 +106,5 @@ export class ResultScene extends Phaser.Scene {
     } else if (best > 0) {
       makeText(this, GAME_W / 2, recordY, `최고 기록  ★ ${best}`, 48, '#37474f');
     }
-
-    makeButton(this, GAME_W / 2, 830, '다시 하기', {
-      color: 0x43a047,
-      width: 440,
-      onClick: () => this.replay(),
-    });
-    makeButton(this, GAME_W / 2, 1000, '차 바꾸기', {
-      color: 0x1e88e5,
-      width: 440,
-      onClick: () => this.scene.start('Title'),
-    });
-
-    const car = this.add.image(-100, 1215, this.carKey).setAngle(90).setScale(0.7);
-    this.tweens.add({ targets: car, x: GAME_W + 100, duration: 3500, repeat: -1 });
-
-    this.input.keyboard.on('keydown-ENTER', () => this.replay());
   }
 }

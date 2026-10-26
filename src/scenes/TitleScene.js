@@ -1,21 +1,39 @@
 import Phaser from 'phaser';
-import { GAME_H, GAME_W, MISSION_GOAL, PLAYER_CARS, ROAD_W, ROAD_X, SPEED_PRESETS, STORAGE_KEYS } from '../config.js';
+import {
+  DEFAULT_MODE,
+  GAME_H,
+  GAME_W,
+  MISSION_GOAL,
+  MODES,
+  PLAYER_CARS,
+  ROAD_W,
+  ROAD_X,
+  SPEED_PRESETS,
+  STORAGE_KEYS,
+} from '../config.js';
 import { sfx } from '../audio/Sfx.js';
 import { loadMissionGoal, loadSpeed, storage } from '../storage.js';
 import { makeButton, makeText } from '../ui/widgets.js';
 
 const CARD_W = 260;
-const CARD_H = 220;
+const CARD_H = 200;
 const CARD_POS = [
-  [215, 460],
-  [505, 460],
-  [215, 695],
-  [505, 695],
+  [215, 455],
+  [505, 455],
+  [215, 670],
+  [505, 670],
 ];
-const IMG_Y = -22;
-const GOAL_Y = 875;
-const SPEED_Y = 970;
+const IMG_Y = -20;
+const MODE_Y = 845;
+const GOAL_Y = 935;
+const SPEED_Y = 1025;
 const SPEED_KEYS = Object.keys(SPEED_PRESETS);
+const MODE_KEYS = Object.keys(MODES);
+const SUBTITLE = {
+  mission: '차를 피하고 미션을 해결해요!',
+  dodge: '별이 없어질 때까지 차를 피해요!',
+};
+const outline = (n) => ({ stroke: '#37474f', strokeThickness: n });
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -28,30 +46,35 @@ export class TitleScene extends Phaser.Scene {
     this.add.tileSprite(GAME_W - ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass').setFlipX(true);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.25);
 
-    const title = makeText(this, GAME_W / 2, 140, '씽씽 자동차', 104, '#ffeb3b', {
-      stroke: '#37474f',
-      strokeThickness: 14,
-    });
-    this.tweens.add({ targets: title, y: 152, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    makeText(this, GAME_W / 2, 235, '차를 피하고 미션을 해결해요!', 48, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
-    makeText(this, GAME_W / 2, 320, '내 차를 골라요', 52, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
+    // 제목: 작은 "영우의" + 큰 "씽씽 자동차"
+    const owner = makeText(this, GAME_W / 2, 72, '영우의', 50, '#ffffff', outline(10));
+    const title = makeText(this, GAME_W / 2, 150, '씽씽 자동차', 100, '#ffeb3b', outline(14));
+    this.tweens.add({ targets: [owner, title], y: '+=10', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    this.subtitle = makeText(this, GAME_W / 2, 238, '', 46, '#ffffff', outline(8));
+    makeText(this, GAME_W / 2, 315, '내 차를 골라요', 50, '#ffffff', outline(8));
 
     const saved = PLAYER_CARS.findIndex((c) => c.key === storage.get(STORAGE_KEYS.car));
     this.selected = saved >= 0 ? saved : 0;
     this.cards = PLAYER_CARS.map((car, i) => this.makeCard(car, i));
     this.refreshCards();
 
+    const savedMode = storage.get(STORAGE_KEYS.mode);
+    this.mode = MODE_KEYS.includes(savedMode) ? savedMode : DEFAULT_MODE;
+    this.modePicker = this.makeSegments(MODE_Y, '놀이', MODE_KEYS.map((k) => [k, MODES[k].name]), (k) => this.setMode(k));
+
     this.missionGoal = loadMissionGoal();
     this.makeGoalStepper();
+
     this.speedKey = loadSpeed();
-    this.makeSpeedPicker();
+    this.speedPicker = this.makeSegments(SPEED_Y, '속도', SPEED_KEYS.map((k) => [k, SPEED_PRESETS[k].name]), (k) =>
+      this.setSpeed(k),
+    );
+    this.speedPicker.refresh(this.speedKey);
 
-    makeButton(this, GAME_W / 2, 1092, '시작!', { width: 420, height: 130, fontSize: 72, onClick: () => this.start() });
+    makeButton(this, GAME_W / 2, 1135, '시작!', { width: 420, height: 120, fontSize: 68, onClick: () => this.start() });
+    this.bestText = makeText(this, GAME_W / 2, 1240, '', 42, '#ffffff', outline(6));
 
-    const best = Number(storage.get(STORAGE_KEYS.best)) || 0;
-    if (best > 0) {
-      makeText(this, GAME_W / 2, 1225, `최고 기록  ★ ${best}`, 44, '#ffffff', { stroke: '#37474f', strokeThickness: 6 });
-    }
+    this.refreshMode();
 
     const kb = this.input.keyboard;
     kb.on('keydown-LEFT', () => this.select((this.selected + 3) % 4));
@@ -63,6 +86,7 @@ export class TitleScene extends Phaser.Scene {
     kb.on('keydown-PLUS', () => this.changeGoal(1));
     kb.on('keydown-NUMPAD_ADD', () => this.changeGoal(1));
     kb.on('keydown-S', () => this.setSpeed(SPEED_KEYS[(SPEED_KEYS.indexOf(this.speedKey) + 1) % SPEED_KEYS.length]));
+    kb.on('keydown-M', () => this.setMode(MODE_KEYS[(MODE_KEYS.indexOf(this.mode) + 1) % MODE_KEYS.length]));
     kb.on('keydown-ENTER', () => this.start());
     kb.on('keydown-SPACE', () => this.start());
   }
@@ -72,8 +96,8 @@ export class TitleScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
     const img = this.add.image(0, IMG_Y, car.key);
-    img.setScale(Math.min(1, 140 / img.height));
-    const label = makeText(this, 0, 80, car.name, 42, '#37474f');
+    img.setScale(Math.min(1, 125 / img.height));
+    const label = makeText(this, 0, 72, car.name, 40, '#37474f');
     container.add([bg, img, label]);
     container.setSize(CARD_W, CARD_H);
     container.setInteractive({ useHandCursor: true });
@@ -112,23 +136,58 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 
-  // 미션 개수·속도 줄의 흰 알약 바탕
+  // 놀이·미션 개수·속도 줄의 흰 알약 바탕
   makePill(y) {
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.25);
     bg.fillRoundedRect(120, y - 42 + 6, 480, 84, 42);
     bg.fillStyle(0xffffff, 1);
     bg.fillRoundedRect(120, y - 42, 480, 84, 42);
+    return bg;
   }
 
-  // "미션 ◀ 5 ▶ 개" — 한 판에 할 미션 개수
+  // "이름 [A][B][C]" 고르기 줄. items: [키, 글자]. 고른 칸은 주황 바탕에 흰 글씨
+  makeSegments(y, name, items, onPick) {
+    this.makePill(y);
+    makeText(this, 195, y, name, 46, '#37474f');
+    const left = 250;
+    const width = 340;
+    const w = width / items.length - 8;
+    const buttons = items.map(([key, text], i) => {
+      const c = this.add.container(left + (width / items.length) * (i + 0.5), y);
+      const bg = this.add.graphics();
+      const label = makeText(this, 0, 0, text, 36, '#37474f');
+      c.add([bg, label]);
+      c.setSize(w + 4, 66);
+      c.setInteractive({ useHandCursor: true });
+      c.on('pointerup', () => {
+        sfx.unlock();
+        onPick(key);
+      });
+      return { key, bg, label };
+    });
+    return {
+      refresh(current) {
+        for (const { key, bg, label } of buttons) {
+          const on = key === current;
+          bg.clear();
+          bg.fillStyle(on ? 0xff9800 : 0xeceff1, 1);
+          bg.fillRoundedRect(-w / 2, -31, w, 62, 31);
+          label.setColor(on ? '#ffffff' : '#78909c');
+        }
+      },
+    };
+  }
+
+  // "미션 ◀ 5 ▶ 개" — 한 판에 할 미션 개수 (피하기 놀이에서는 흐리게, 누를 수 없음)
   makeGoalStepper() {
-    this.makePill(GOAL_Y);
-    makeText(this, 195, GOAL_Y, '미션', 46, '#37474f');
-    makeText(this, 548, GOAL_Y, '개', 46, '#37474f');
+    const pill = this.makePill(GOAL_Y);
+    const label = makeText(this, 195, GOAL_Y, '미션', 46, '#37474f');
+    const unit = makeText(this, 548, GOAL_Y, '개', 46, '#37474f');
     this.goalText = makeText(this, 385, GOAL_Y, '', 64, '#ff6f00');
     this.goalDown = this.makeArrowButton(300, GOAL_Y, -1);
     this.goalUp = this.makeArrowButton(470, GOAL_Y, 1);
+    this.goalParts = [pill, label, unit, this.goalText];
     this.refreshGoal();
   }
 
@@ -153,6 +212,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   changeGoal(dir) {
+    if (this.mode !== 'mission') return;
     const next = Phaser.Math.Clamp(this.missionGoal + dir, MISSION_GOAL.min, MISSION_GOAL.max);
     if (next === this.missionGoal) return;
     this.missionGoal = next;
@@ -164,29 +224,11 @@ export class TitleScene extends Phaser.Scene {
 
   refreshGoal() {
     this.goalText.setText(String(this.missionGoal));
+    const active = this.mode !== 'dodge';
+    for (const part of this.goalParts) part.setAlpha(active ? 1 : 0.35);
     // 끝값에서는 더 못 누른다는 걸 흐리게 보여 준다
-    this.goalDown.setAlpha(this.missionGoal > MISSION_GOAL.min ? 1 : 0.35);
-    this.goalUp.setAlpha(this.missionGoal < MISSION_GOAL.max ? 1 : 0.35);
-  }
-
-  // "속도 [느림][보통][빠름]"
-  makeSpeedPicker() {
-    this.makePill(SPEED_Y);
-    makeText(this, 195, SPEED_Y, '속도', 46, '#37474f');
-    this.speedButtons = SPEED_KEYS.map((key, i) => {
-      const c = this.add.container(305 + i * 115, SPEED_Y);
-      const bg = this.add.graphics();
-      const label = makeText(this, 0, 0, SPEED_PRESETS[key].name, 36, '#37474f');
-      c.add([bg, label]);
-      c.setSize(108, 66);
-      c.setInteractive({ useHandCursor: true });
-      c.on('pointerup', () => {
-        sfx.unlock();
-        this.setSpeed(key);
-      });
-      return { key, bg, label };
-    });
-    this.refreshSpeed();
+    this.goalDown.setAlpha(active && this.missionGoal > MISSION_GOAL.min ? 1 : 0.35);
+    this.goalUp.setAlpha(active && this.missionGoal < MISSION_GOAL.max ? 1 : 0.35);
   }
 
   setSpeed(key) {
@@ -194,22 +236,30 @@ export class TitleScene extends Phaser.Scene {
     this.speedKey = key;
     storage.set(STORAGE_KEYS.speed, key);
     sfx.click();
-    this.refreshSpeed();
+    this.speedPicker.refresh(key);
   }
 
-  refreshSpeed() {
-    for (const { key, bg, label } of this.speedButtons) {
-      const on = key === this.speedKey;
-      bg.clear();
-      bg.fillStyle(on ? 0xff9800 : 0xeceff1, 1);
-      bg.fillRoundedRect(-52, -31, 104, 62, 31);
-      label.setColor(on ? '#ffffff' : '#78909c');
-    }
+  setMode(key) {
+    if (key === this.mode) return;
+    this.mode = key;
+    storage.set(STORAGE_KEYS.mode, key);
+    sfx.click();
+    this.refreshMode();
+  }
+
+  // 놀이에 따라 바뀌는 것: 부제, 미션 개수 줄, 최고 기록 줄
+  refreshMode() {
+    this.modePicker.refresh(this.mode);
+    this.subtitle.setText(SUBTITLE[this.mode]);
+    if (this.goalParts) this.refreshGoal();
+    const dodge = this.mode === 'dodge';
+    const best = Number(storage.get(dodge ? STORAGE_KEYS.bestDodge : STORAGE_KEYS.best)) || 0;
+    this.bestText.setText(best > 0 ? (dodge ? `최고 기록  ⏱ ${best.toFixed(1)}초` : `최고 기록  ★ ${best}`) : '');
   }
 
   start() {
     sfx.unlock();
-    this.scene.start('Game', {
+    this.scene.start(MODES[this.mode].scene, {
       carKey: PLAYER_CARS[this.selected].key,
       missionGoal: this.missionGoal,
       speed: this.speedKey,

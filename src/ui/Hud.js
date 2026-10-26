@@ -40,7 +40,27 @@ export class Hud {
   }
 
   setMission(current, goal) {
-    this.missionText.setText(`미션 ${current}/${goal}`);
+    this.setCenter(`미션 ${current}/${goal}`);
+  }
+
+  // 가운데 알약 글자 (미션 놀이: "미션 2/5", 피하기 놀이: "⏱ 32초")
+  setCenter(text) {
+    if (this.missionText.text !== text) this.missionText.setText(text);
+  }
+
+  // 별(생명)이 1개만 남았을 때 별 칸을 빨갛게 깜빡인다
+  setDanger(on) {
+    if (on === !!this.danger) return;
+    if (on) {
+      this.danger = this.scene.add.graphics().setDepth(DEPTH - 1);
+      this.danger.fillStyle(0xff5252, 1);
+      this.danger.fillRoundedRect(14, 14, 252, 112, 34);
+      this.scene.tweens.add({ targets: this.danger, alpha: 0.15, duration: 350, yoyo: true, repeat: -1 });
+    } else {
+      this.scene.tweens.killTweensOf(this.danger);
+      this.danger.destroy();
+      this.danger = null;
+    }
   }
 
   setStars(n) {

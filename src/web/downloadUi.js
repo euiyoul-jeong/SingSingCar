@@ -39,7 +39,7 @@ export function mountDownloadUi({ onOpen } = {}) {
   modal.innerHTML = `
     <div class="dl-sheet" role="dialog" aria-modal="true" aria-label="안드로이드 앱 받기">
       <img class="dl-icon" src="icon.png" alt="" />
-      <h2>씽씽 자동차 앱</h2>
+      <h2>영우의 씽씽 자동차 앱</h2>
       <a class="dl-btn" href="${APK_URL}">📱 APK 받기</a>
       ${STEPS}
       <button type="button" class="dl-close">닫기</button>

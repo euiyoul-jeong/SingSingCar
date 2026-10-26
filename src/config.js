@@ -12,9 +12,9 @@ export const PLAYER_Y = 1060;
 // 차·토큰이 다가오는 속도(px/초). 시작 화면에서 고르고, 미션을 2개 해낼 때마다
 // 한 단계씩 빨라지며 마지막 단계에서 멈춘다
 export const SPEED_PRESETS = {
-  slow: { name: '느림', steps: [190, 220, 250, 280, 310] },
-  normal: { name: '보통', steps: [240, 280, 320, 360, 400] },
-  fast: { name: '빠름', steps: [300, 345, 390, 435, 480] },
+  slow: { name: '느림', steps: [230, 265, 300, 335, 370] },
+  normal: { name: '보통', steps: [290, 338, 385, 433, 480] },
+  fast: { name: '빠름', steps: [360, 415, 470, 525, 580] },
 };
 export const DEFAULT_SPEED = 'normal';
 export const MISSIONS_PER_SPEED_UP = 2;
@@ -35,6 +35,25 @@ export const MISSION_AREAS = ['attention', 'number', 'hangul', 'memory'];
 export const MISSION_BONUS = 3;
 // 한 판의 미션 개수: 이만큼 해내면 한 판이 끝난다 (시작 화면에서 조절)
 export const MISSION_GOAL = { default: 5, min: 3, max: 10 };
+
+// 놀이 종류: 미션 놀이(GameScene) / 피하기 놀이(DodgeScene)
+export const MODES = {
+  mission: { name: '미션', scene: 'Game' },
+  dodge: { name: '피하기', scene: 'Dodge' },
+};
+export const DEFAULT_MODE = 'mission';
+
+// 피하기 놀이 규칙 (미션 놀이와 따로)
+export const DODGE = {
+  startLives: 3, // 별 3개로 시작, 0개면 끝
+  maxLives: 5, // 5개면 먹을 별이 더 안 나온다
+  starEveryMs: [15000, 25000], // 먹을 별이 나오는 간격(무작위)
+  levelUpMs: 20000, // 이 시간마다 한 단계 빨라진다
+  speedUpAfterMax: 0.05, // 속도 표의 5단계를 넘으면 단계마다 +5%
+  speedCapFactor: 1.25, // 최대 = 속도 표 최대값 × 1.25
+  twoCarChance: [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4], // 단계별, 마지막 값에서 멈춤
+  endDelayMs: 1000, // 별이 다 없어진 뒤 결과 화면까지
+};
 
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
 export const HIT_DX = 80;
@@ -65,4 +84,6 @@ export const STORAGE_KEYS = {
   muted: 'cargame.muted',
   missionGoal: 'cargame.missionGoal',
   speed: 'cargame.speed',
+  mode: 'cargame.mode',
+  bestDodge: 'cargame.bestDodge',
 };

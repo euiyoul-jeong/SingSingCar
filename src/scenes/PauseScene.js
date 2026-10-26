@@ -8,6 +8,11 @@ export class PauseScene extends Phaser.Scene {
     super('Pause');
   }
 
+  // from: 멈춘 놀이 씬 ('Game' = 미션 놀이, 'Dodge' = 피하기 놀이)
+  init(data) {
+    this.from = data?.from || 'Game';
+  }
+
   create() {
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.55).setInteractive();
     const panel = this.add.graphics();
@@ -25,22 +30,25 @@ export class PauseScene extends Phaser.Scene {
   }
 
   resumeGame() {
-    this.scene.resume('Game');
+    this.scene.resume(this.from);
     this.scene.stop();
     sfx.startBgm();
   }
 
   quit() {
-    const game = this.scene.get('Game');
-    const data = {
-      stars: game.stars,
-      carKey: game.carKey,
-      missions: game.director.completed,
-      goal: game.missionGoal,
-      speed: game.speedKey,
-      cleared: false,
-    };
-    this.scene.stop('Game');
+    const game = this.scene.get(this.from);
+    const data =
+      this.from === 'Dodge'
+        ? game.resultData()
+        : {
+            stars: game.stars,
+            carKey: game.carKey,
+            missions: game.director.completed,
+            goal: game.missionGoal,
+            speed: game.speedKey,
+            cleared: false,
+          };
+    this.scene.stop(this.from);
     this.scene.start('Result', data);
   }
 }

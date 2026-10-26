@@ -2,6 +2,8 @@ import { makeText } from './widgets.js';
 
 // 미션 spec(그림/글자/도형)을 size 크기의 게임 오브젝트로 만든다
 export function makeSpecView(scene, spec, size) {
+  // 피하기 놀이의 먹을 별
+  if (spec.t === 'star') return scene.add.image(0, 0, 'star').setDisplaySize(size, size);
   if (spec.t === 'shape') {
     return scene.add.image(0, 0, `shape_${spec.shape}_${spec.color}`).setDisplaySize(size * 0.96, size);
   }
