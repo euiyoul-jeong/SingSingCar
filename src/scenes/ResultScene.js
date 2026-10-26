@@ -13,12 +13,13 @@ export class ResultScene extends Phaser.Scene {
     this.stars = data.stars ?? 0;
     this.missions = data.missions ?? 0;
     this.goal = data.goal;
+    this.speed = data.speed;
     this.cleared = !!data.cleared;
     this.carKey = data.carKey || 'car_red';
   }
 
   replay() {
-    this.scene.start('Game', { carKey: this.carKey, missionGoal: this.goal });
+    this.scene.start('Game', { carKey: this.carKey, missionGoal: this.goal, speed: this.speed });
   }
 
   create() {

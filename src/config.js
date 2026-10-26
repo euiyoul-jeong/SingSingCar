@@ -9,10 +9,17 @@ export const ROAD_W = 480;
 export const LANE_X = [200, 360, 520];
 export const PLAYER_Y = 1060;
 
-// 도로 속도(px/초). 미션을 2개 해낼 때마다 한 단계씩 빨라지고 마지막 단계에서 멈춘다.
-// 토큰을 보고 생각할 시간이 필요하므로 느리게 시작한다
-export const SPEED_STEPS = [190, 220, 250, 280, 310];
+// 차·토큰이 다가오는 속도(px/초). 시작 화면에서 고르고, 미션을 2개 해낼 때마다
+// 한 단계씩 빨라지며 마지막 단계에서 멈춘다
+export const SPEED_PRESETS = {
+  slow: { name: '느림', steps: [190, 220, 250, 280, 310] },
+  normal: { name: '보통', steps: [240, 280, 320, 360, 400] },
+  fast: { name: '빠름', steps: [300, 345, 390, 435, 480] },
+};
+export const DEFAULT_SPEED = 'normal';
 export const MISSIONS_PER_SPEED_UP = 2;
+// 도로·잔디·나무는 차·토큰보다 이만큼 빠르게 흐른다 (앞차를 추월하는 느낌, 난이도는 그대로)
+export const BG_SPEED_FACTOR = 1.6;
 
 // 장애물 줄 사이 거리(px). 미션이 시작되면 첫 줄은 조금 빨리 나온다
 export const ROW_GAP = 520;
@@ -57,4 +64,5 @@ export const STORAGE_KEYS = {
   best: 'cargame.best',
   muted: 'cargame.muted',
   missionGoal: 'cargame.missionGoal',
+  speed: 'cargame.speed',
 };

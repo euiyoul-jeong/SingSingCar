@@ -37,6 +37,7 @@ export class PauseScene extends Phaser.Scene {
       carKey: game.carKey,
       missions: game.director.completed,
       goal: game.missionGoal,
+      speed: game.speedKey,
       cleared: false,
     };
     this.scene.stop('Game');

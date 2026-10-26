@@ -1,19 +1,21 @@
 import Phaser from 'phaser';
-import { GAME_H, GAME_W, MISSION_GOAL, PLAYER_CARS, ROAD_W, ROAD_X, STORAGE_KEYS } from '../config.js';
+import { GAME_H, GAME_W, MISSION_GOAL, PLAYER_CARS, ROAD_W, ROAD_X, SPEED_PRESETS, STORAGE_KEYS } from '../config.js';
 import { sfx } from '../audio/Sfx.js';
-import { loadMissionGoal, storage } from '../storage.js';
+import { loadMissionGoal, loadSpeed, storage } from '../storage.js';
 import { makeButton, makeText } from '../ui/widgets.js';
 
 const CARD_W = 260;
-const CARD_H = 240;
+const CARD_H = 220;
 const CARD_POS = [
-  [215, 495],
-  [505, 495],
-  [215, 760],
-  [505, 760],
+  [215, 460],
+  [505, 460],
+  [215, 695],
+  [505, 695],
 ];
-const IMG_Y = -25;
-const GOAL_Y = 960;
+const IMG_Y = -22;
+const GOAL_Y = 875;
+const SPEED_Y = 970;
+const SPEED_KEYS = Object.keys(SPEED_PRESETS);
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -26,13 +28,13 @@ export class TitleScene extends Phaser.Scene {
     this.add.tileSprite(GAME_W - ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass').setFlipX(true);
     this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.25);
 
-    const title = makeText(this, GAME_W / 2, 150, '씽씽 자동차', 104, '#ffeb3b', {
+    const title = makeText(this, GAME_W / 2, 140, '씽씽 자동차', 104, '#ffeb3b', {
       stroke: '#37474f',
       strokeThickness: 14,
     });
-    this.tweens.add({ targets: title, y: 162, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    makeText(this, GAME_W / 2, 250, '차를 피하고 미션을 해결해요!', 48, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
-    makeText(this, GAME_W / 2, 340, '내 차를 골라요', 52, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
+    this.tweens.add({ targets: title, y: 152, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    makeText(this, GAME_W / 2, 235, '차를 피하고 미션을 해결해요!', 48, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
+    makeText(this, GAME_W / 2, 320, '내 차를 골라요', 52, '#ffffff', { stroke: '#37474f', strokeThickness: 8 });
 
     const saved = PLAYER_CARS.findIndex((c) => c.key === storage.get(STORAGE_KEYS.car));
     this.selected = saved >= 0 ? saved : 0;
@@ -41,8 +43,10 @@ export class TitleScene extends Phaser.Scene {
 
     this.missionGoal = loadMissionGoal();
     this.makeGoalStepper();
+    this.speedKey = loadSpeed();
+    this.makeSpeedPicker();
 
-    makeButton(this, GAME_W / 2, 1095, '시작!', { width: 420, height: 140, fontSize: 76, onClick: () => this.start() });
+    makeButton(this, GAME_W / 2, 1092, '시작!', { width: 420, height: 130, fontSize: 72, onClick: () => this.start() });
 
     const best = Number(storage.get(STORAGE_KEYS.best)) || 0;
     if (best > 0) {
@@ -58,6 +62,7 @@ export class TitleScene extends Phaser.Scene {
     kb.on('keydown-NUMPAD_SUBTRACT', () => this.changeGoal(-1));
     kb.on('keydown-PLUS', () => this.changeGoal(1));
     kb.on('keydown-NUMPAD_ADD', () => this.changeGoal(1));
+    kb.on('keydown-S', () => this.setSpeed(SPEED_KEYS[(SPEED_KEYS.indexOf(this.speedKey) + 1) % SPEED_KEYS.length]));
     kb.on('keydown-ENTER', () => this.start());
     kb.on('keydown-SPACE', () => this.start());
   }
@@ -67,8 +72,8 @@ export class TitleScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
     const img = this.add.image(0, IMG_Y, car.key);
-    img.setScale(Math.min(1, 150 / img.height));
-    const label = makeText(this, 0, 88, car.name, 44, '#37474f');
+    img.setScale(Math.min(1, 140 / img.height));
+    const label = makeText(this, 0, 80, car.name, 42, '#37474f');
     container.add([bg, img, label]);
     container.setSize(CARD_W, CARD_H);
     container.setInteractive({ useHandCursor: true });
@@ -107,13 +112,18 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 
-  // "미션 ◀ 5 ▶ 개" — 한 판에 할 미션 개수
-  makeGoalStepper() {
+  // 미션 개수·속도 줄의 흰 알약 바탕
+  makePill(y) {
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.25);
-    bg.fillRoundedRect(120, GOAL_Y - 45 + 6, 480, 90, 45);
+    bg.fillRoundedRect(120, y - 42 + 6, 480, 84, 42);
     bg.fillStyle(0xffffff, 1);
-    bg.fillRoundedRect(120, GOAL_Y - 45, 480, 90, 45);
+    bg.fillRoundedRect(120, y - 42, 480, 84, 42);
+  }
+
+  // "미션 ◀ 5 ▶ 개" — 한 판에 할 미션 개수
+  makeGoalStepper() {
+    this.makePill(GOAL_Y);
     makeText(this, 195, GOAL_Y, '미션', 46, '#37474f');
     makeText(this, 548, GOAL_Y, '개', 46, '#37474f');
     this.goalText = makeText(this, 385, GOAL_Y, '', 64, '#ff6f00');
@@ -159,9 +169,51 @@ export class TitleScene extends Phaser.Scene {
     this.goalUp.setAlpha(this.missionGoal < MISSION_GOAL.max ? 1 : 0.35);
   }
 
+  // "속도 [느림][보통][빠름]"
+  makeSpeedPicker() {
+    this.makePill(SPEED_Y);
+    makeText(this, 195, SPEED_Y, '속도', 46, '#37474f');
+    this.speedButtons = SPEED_KEYS.map((key, i) => {
+      const c = this.add.container(305 + i * 115, SPEED_Y);
+      const bg = this.add.graphics();
+      const label = makeText(this, 0, 0, SPEED_PRESETS[key].name, 36, '#37474f');
+      c.add([bg, label]);
+      c.setSize(108, 66);
+      c.setInteractive({ useHandCursor: true });
+      c.on('pointerup', () => {
+        sfx.unlock();
+        this.setSpeed(key);
+      });
+      return { key, bg, label };
+    });
+    this.refreshSpeed();
+  }
+
+  setSpeed(key) {
+    if (key === this.speedKey) return;
+    this.speedKey = key;
+    storage.set(STORAGE_KEYS.speed, key);
+    sfx.click();
+    this.refreshSpeed();
+  }
+
+  refreshSpeed() {
+    for (const { key, bg, label } of this.speedButtons) {
+      const on = key === this.speedKey;
+      bg.clear();
+      bg.fillStyle(on ? 0xff9800 : 0xeceff1, 1);
+      bg.fillRoundedRect(-52, -31, 104, 62, 31);
+      label.setColor(on ? '#ffffff' : '#78909c');
+    }
+  }
+
   start() {
     sfx.unlock();
-    this.scene.start('Game', { carKey: PLAYER_CARS[this.selected].key, missionGoal: this.missionGoal });
+    this.scene.start('Game', {
+      carKey: PLAYER_CARS[this.selected].key,
+      missionGoal: this.missionGoal,
+      speed: this.speedKey,
+    });
   }
 
   update(_time, delta) {

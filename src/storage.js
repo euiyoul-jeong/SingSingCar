@@ -1,4 +1,10 @@
-import { MISSION_GOAL, STORAGE_KEYS } from './config.js';
+import { DEFAULT_SPEED, MISSION_GOAL, SPEED_PRESETS, STORAGE_KEYS } from './config.js';
+
+// 저장된 속도(slow/normal/fast). 모르는 값이면 기본값
+export function loadSpeed() {
+  const key = storage.get(STORAGE_KEYS.speed);
+  return key && Object.hasOwn(SPEED_PRESETS, key) ? key : DEFAULT_SPEED;
+}
 
 // 저장된 미션 개수. 없거나 범위를 벗어나면 기본값/끝값으로 맞춘다
 export function loadMissionGoal() {

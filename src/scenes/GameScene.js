@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  BG_SPEED_FACTOR,
   GAME_H,
   GAME_W,
   HIT_DX,
@@ -11,7 +12,7 @@ import {
   PRAISE,
   ROAD_W,
   ROAD_X,
-  SPEED_STEPS,
+  SPEED_PRESETS,
   TOKEN_DX,
   TOKEN_DY,
 } from '../config.js';
@@ -20,13 +21,23 @@ import { voice } from '../audio/Voice.js';
 import { MissionDirector } from '../missions/missions.js';
 import { PlayerCar } from '../objects/PlayerCar.js';
 import { Spawner } from '../objects/Spawner.js';
-import { loadMissionGoal } from '../storage.js';
+import { loadMissionGoal, loadSpeed } from '../storage.js';
 import { Hud } from '../ui/Hud.js';
 import { MissionPanel } from '../ui/MissionPanel.js';
 import { makeSpecView } from '../ui/specView.js';
 import { makeText } from '../ui/widgets.js';
 
 const REMINDER_COOLDOWN_MS = 3500;
+
+// 바람 줄무늬는 양쪽 잔디와 갓길에만 (가운데 차선의 토큰을 가리지 않게)
+const STREAK_ZONES = [
+  [15, 105],
+  [615, 705],
+  [130, 145],
+  [575, 590],
+];
+const STREAK_COUNT = 12;
+const STREAK_SPEED = 1.5; // 배경보다 이만큼 더 빠르게
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +47,8 @@ export class GameScene extends Phaser.Scene {
   init(data) {
     this.carKey = data.carKey || 'car_red';
     this.missionGoal = data.missionGoal ?? loadMissionGoal();
+    this.speedKey = data.speed ?? loadSpeed();
+    this.speedSteps = SPEED_PRESETS[this.speedKey].steps;
     this.stars = 0;
     this.level = 0;
     this.untilDecor = 0;
@@ -51,6 +64,7 @@ export class GameScene extends Phaser.Scene {
     this.road = this.add.tileSprite(ROAD_X + ROAD_W / 2, GAME_H / 2, ROAD_W, GAME_H, 'road');
     this.grassL = this.add.tileSprite(ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass');
     this.grassR = this.add.tileSprite(GAME_W - ROAD_X / 2, GAME_H / 2, ROAD_X, GAME_H, 'grass').setFlipX(true);
+    this.createStreaks();
 
     this.player = new PlayerCar(this, this.carKey);
     this.spawner = new Spawner(this, this.player);
@@ -119,7 +133,7 @@ export class GameScene extends Phaser.Scene {
     this.mission = m;
     this.phase = 'intro';
     this.rowsSinceGood = 0;
-    this.level = Math.min(SPEED_STEPS.length - 1, Math.floor(this.director.completed / MISSIONS_PER_SPEED_UP));
+    this.level = Math.min(this.speedSteps.length - 1, Math.floor(this.director.completed / MISSIONS_PER_SPEED_UP));
     const current = this.director.completed + 1;
     const last = current === this.missionGoal;
     this.hud.setMission(current, this.missionGoal);
@@ -243,6 +257,7 @@ export class GameScene extends Phaser.Scene {
         carKey: this.carKey,
         missions: this.director.completed,
         goal: this.missionGoal,
+        speed: this.speedKey,
         cleared: true,
       }),
     );
@@ -297,13 +312,38 @@ export class GameScene extends Phaser.Scene {
 
   update(_time, delta) {
     const dt = Math.min(delta, 50) / 1000;
-    const dy = SPEED_STEPS[this.level] * dt;
-    this.road.tilePositionY -= dy;
-    this.grassL.tilePositionY -= dy;
-    this.grassR.tilePositionY -= dy;
-    this.updateDecor(dy);
+    const dy = this.speedSteps[this.level] * dt; // 차·토큰 (난이도)
+    const bgDy = dy * BG_SPEED_FACTOR; // 도로·잔디·나무 (속도감)
+    this.road.tilePositionY -= bgDy;
+    this.grassL.tilePositionY -= bgDy;
+    this.grassR.tilePositionY -= bgDy;
+    this.updateDecor(bgDy);
+    this.updateStreaks(bgDy * STREAK_SPEED);
     this.spawner.update(dy, this.level);
     this.checkHits();
+  }
+
+  createStreaks() {
+    this.streaks = Array.from({ length: STREAK_COUNT }, () => {
+      const s = this.add.rectangle(0, 0, 5, 100, 0xffffff).setDepth(3);
+      this.placeStreak(s, Phaser.Math.Between(0, GAME_H));
+      return s;
+    });
+  }
+
+  placeStreak(s, y) {
+    const [from, to] = Phaser.Utils.Array.GetRandom(STREAK_ZONES);
+    s.setPosition(Phaser.Math.Between(from, to), y);
+    s.setDisplaySize(Phaser.Math.Between(4, 6), Phaser.Math.Between(60, 140));
+    s.setAlpha(Phaser.Math.FloatBetween(0.35, 0.6));
+  }
+
+  // 화면 아래로 나간 줄무늬는 새로 만들지 않고 위로 돌려 다시 쓴다
+  updateStreaks(dy) {
+    for (const s of this.streaks) {
+      s.y += dy;
+      if (s.y - s.displayHeight / 2 > GAME_H) this.placeStreak(s, -Phaser.Math.Between(80, 400));
+    }
   }
 
   checkHits() {
