@@ -14,7 +14,7 @@ const STAR_SPEC = { t: 'star', id: 'star' };
 // 피하기 놀이: 미션 없이 차만 피한다. 미션 놀이(GameScene)와 규칙이 다르다.
 // - 별(생명) 3개로 시작, 부딪히면 -1, 0개면 끝
 // - 30초마다 먹을 별이 하나 나온다 (최대 5개)
-// - 20초마다 빨라진다 (최대 속도는 느림·보통·빠름 모두 같다)
+// - 20초마다 빨라진다 (최대 속도는 느림·보통·빠름 모두 같고, 닿으면 "더 빨리!"도 멈춘다)
 // - 점수 = 달린 거리(m). 빠르게 달릴수록 같은 시간에 점수가 더 오른다
 export class DodgeScene extends Phaser.Scene {
   constructor() {
@@ -120,9 +120,13 @@ export class DodgeScene extends Phaser.Scene {
       this.untilStarMs -= delta;
       const level = Math.floor(this.playMs / DODGE.levelUpMs);
       if (level > this.level) {
+        // 최대 속도에 닿은 뒤로는 실제로 안 빨라지니 "더 빨리!"를 띄우지 않는다
+        const faster = this.speedFor(level) > this.speedFor(this.level);
         this.level = level;
-        this.popup('더 빨리!', '#4fc3f7');
-        sfx.honk();
+        if (faster) {
+          this.popup('더 빨리!', '#4fc3f7');
+          sfx.honk();
+        }
       }
     }
     const dy = this.speedFor(this.level) * dt;
