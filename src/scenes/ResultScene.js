@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_H, GAME_W, STORAGE_KEYS } from '../config.js';
 import { sfx } from '../audio/Sfx.js';
 import { storage } from '../storage.js';
+import { openExitDialog } from '../ui/exitDialog.js';
 import { makeButton, makeText } from '../ui/widgets.js';
 
 export class ResultScene extends Phaser.Scene {
@@ -38,10 +39,17 @@ export class ResultScene extends Phaser.Scene {
       width: 440,
       onClick: () => this.replay(),
     });
-    makeButton(this, GAME_W / 2, 1000, '차 바꾸기', {
+    makeButton(this, 195, 1000, '차 바꾸기', {
       color: 0x1e88e5,
-      width: 440,
+      width: 300,
+      fontSize: 50,
       onClick: () => this.scene.start('Title'),
+    });
+    makeButton(this, 525, 1000, '끝내기', {
+      color: 0xe53935,
+      width: 300,
+      fontSize: 50,
+      onClick: () => openExitDialog(this),
     });
 
     const car = this.add.image(-100, 1215, this.carKey).setAngle(90).setScale(0.7);

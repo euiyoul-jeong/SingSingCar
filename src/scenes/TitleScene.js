@@ -13,6 +13,7 @@ import {
 } from '../config.js';
 import { sfx } from '../audio/Sfx.js';
 import { loadMissionGoal, loadSpeed, storage } from '../storage.js';
+import { openExitDialog } from '../ui/exitDialog.js';
 import { makeButton, makeText } from '../ui/widgets.js';
 
 const CARD_W = 260;
@@ -50,6 +51,13 @@ export class TitleScene extends Phaser.Scene {
     const owner = makeText(this, GAME_W / 2, 72, '영우의', 50, '#ffffff', outline(10));
     const title = makeText(this, GAME_W / 2, 150, '씽씽 자동차', 100, '#ffeb3b', outline(14));
     this.tweens.add({ targets: [owner, title], y: '+=10', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    // 오른쪽 위 X: 게임 끝내기 (제목과 겹치지 않게 조금 작게)
+    const exit = this.add.image(660, 60, 'icon_close').setScale(0.8).setInteractive({ useHandCursor: true });
+    exit.on('pointerup', () => {
+      sfx.unlock();
+      sfx.click();
+      openExitDialog(this);
+    });
     this.subtitle = makeText(this, GAME_W / 2, 238, '', 46, '#ffffff', outline(8));
     makeText(this, GAME_W / 2, 315, '내 차를 골라요', 50, '#ffffff', outline(8));
 

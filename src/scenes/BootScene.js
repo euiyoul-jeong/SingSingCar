@@ -265,6 +265,13 @@ export class BootScene extends Phaser.Scene {
       g.fillRoundedRect(56, 28, 12, 44, 3);
     });
 
+    this.bake('icon_close', 100, 100, (g) => {
+      drawRoundIcon(g);
+      g.lineStyle(10, 0x37474f);
+      g.lineBetween(34, 34, 66, 66);
+      g.lineBetween(66, 34, 34, 66);
+    });
+
     this.bake('icon_sound_on', 100, 100, (g) => {
       drawRoundIcon(g);
       drawSpeaker(g);
