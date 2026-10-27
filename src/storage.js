@@ -13,6 +13,14 @@ export function loadMissionGoal() {
   return Math.min(MISSION_GOAL.max, Math.max(MISSION_GOAL.min, Math.round(n)));
 }
 
+// 거리 세는 기준이 10px=1m → 50px=1m로 바뀌어, 예전 피하기 최고 기록을 한 번만 1/5로 줄인다
+export function migrateDodgeBest() {
+  if (storage.get(STORAGE_KEYS.dodgeMeterV2)) return;
+  const best = Number(storage.get(STORAGE_KEYS.bestDodgeM));
+  if (best > 0) storage.set(STORAGE_KEYS.bestDodgeM, Math.floor(best / 5));
+  storage.set(STORAGE_KEYS.dodgeMeterV2, '1');
+}
+
 // 사생활 보호 모드 등에서 localStorage가 막혀 있어도 게임은 돌아가야 한다
 export const storage = {
   get(key) {

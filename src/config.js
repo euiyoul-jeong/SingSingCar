@@ -53,7 +53,7 @@ export const DODGE = {
   speedCap: 1400, // 최대 속도. 느림·보통·빠름 모두 같다
   twoCarChance: [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4], // 단계별, 마지막 값에서 멈춤
   endDelayMs: 1000, // 별이 다 없어진 뒤 결과 화면까지
-  pxPerMeter: 10, // 점수(달린 거리): 화면 10px = 1m
+  pxPerMeter: 50, // 점수(달린 거리): 화면 50px = 1m
 };
 
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
@@ -87,4 +87,5 @@ export const STORAGE_KEYS = {
   speed: 'cargame.speed',
   mode: 'cargame.mode',
   bestDodgeM: 'cargame.bestDodgeM', // 피하기 최고 기록(m). 예전 bestDodge(초)는 쓰지 않는다
+  dodgeMeterV2: 'cargame.dodgeMeterV2', // 최고 기록을 50px=1m 기준으로 바꿨다는 표시
 };

@@ -10,6 +10,9 @@ import { DodgeScene } from './scenes/DodgeScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
 import { mountDownloadUi } from './web/downloadUi.js';
+import { migrateDodgeBest } from './storage.js';
+
+migrateDodgeBest();
 
 // 웹에서만 "안드로이드 앱 받기" 패널·띠를 붙인다 (앱 안, 아이폰·아이패드는 제외).
 // 게임 캔버스보다 먼저 붙여야 Phaser가 줄어든 #game 크기에 맞춘다
