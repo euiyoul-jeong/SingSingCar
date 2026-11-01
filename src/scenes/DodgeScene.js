@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BG_SPEED_FACTOR, DODGE, GAME_W, HIT_DX, HIT_PAD, SPEED_PRESETS, TOKEN_DX, TOKEN_DY } from '../config.js';
+import { BG_SPEED_FACTOR, DODGE, GAME_W, SPEED_PRESETS, TOKEN_DX, TOKEN_DY } from '../config.js';
 import { sfx } from '../audio/Sfx.js';
 import { voice } from '../audio/Voice.js';
 import { PlayerCar } from '../objects/PlayerCar.js';
@@ -7,6 +7,7 @@ import { RoadScenery } from '../objects/RoadScenery.js';
 import { Spawner } from '../objects/Spawner.js';
 import { loadSpeed } from '../storage.js';
 import { Hud } from '../ui/Hud.js';
+import { SteerButtons } from '../ui/SteerButtons.js';
 import { GameScene } from './GameScene.js';
 
 const STAR_SPEC = { t: 'star', id: 'star' };
@@ -63,6 +64,7 @@ export class DodgeScene extends Phaser.Scene {
     this.hud = new Hud(this, { onPause: () => this.pauseGame() });
     this.hud.setStars(this.lives);
     this.hud.setCenter('🚗 0m');
+    this.steerButtons = new SteerButtons(this);
 
     this.input.on('pointerdown', (pointer, over) => {
       if (over.length || this.phase === 'over') return;
@@ -141,13 +143,7 @@ export class DodgeScene extends Phaser.Scene {
 
   checkHits() {
     const p = this.player;
-    for (const car of this.spawner.cars) {
-      const reachY = (car.displayHeight + p.displayHeight) / 2 - HIT_PAD;
-      if (Math.abs(car.x - p.x) < HIT_DX && Math.abs(car.y - p.y) < reachY) {
-        this.crash();
-        break;
-      }
-    }
+    if (this.spawner.cars.some((car) => p.hits(car))) this.crash();
     if (this.phase === 'over') return;
     for (const item of [...this.spawner.items]) {
       if (Math.abs(item.x - p.x) < TOKEN_DX && Math.abs(item.y - p.y) < TOKEN_DY) this.eatStar(item);

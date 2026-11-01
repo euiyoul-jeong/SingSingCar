@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { INVINCIBLE_MS, LANE_X, MOVE_MS, PLAYER_Y } from '../config.js';
+import { HIT_DX, HIT_PAD, HIT_PAD_REAR, INVINCIBLE_MS, LANE_X, MOVE_MS, PLAYER_Y } from '../config.js';
 
 export class PlayerCar extends Phaser.GameObjects.Image {
   constructor(scene, textureKey) {
@@ -31,6 +31,13 @@ export class PlayerCar extends Phaser.GameObjects.Image {
       onComplete: () => this.setAngle(0),
     });
     return true;
+  }
+
+  // 장애물 차와 부딪혔는지. 이미 거의 지나간 차(내 차 뒤쪽)는 조금 더 겹쳐도 봐준다
+  hits(car) {
+    const pad = car.y > this.y ? HIT_PAD_REAR : HIT_PAD;
+    const reachY = (car.displayHeight + this.displayHeight) / 2 - pad;
+    return Math.abs(car.x - this.x) < HIT_DX && Math.abs(car.y - this.y) < reachY;
   }
 
   isInvincible(now) {

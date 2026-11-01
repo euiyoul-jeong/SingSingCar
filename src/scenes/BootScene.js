@@ -250,10 +250,17 @@ export class BootScene extends Phaser.Scene {
       g.fillCircle(8, 8, 8);
     });
 
-    this.bake('arrow', 140, 140, (g) => {
-      g.fillStyle(0xffffff);
+    // 좌우 이동 안내 버튼 (오른쪽 화살표, 왼쪽은 뒤집어 쓴다)
+    this.bake('btn_steer', 160, 160, (g) => {
+      g.fillStyle(0x000000, 0.25);
+      g.fillCircle(80, 86, 72);
+      g.fillStyle(0xffffff, 0.92);
+      g.fillCircle(80, 78, 72);
+      g.lineStyle(6, 0x37474f);
+      g.strokeCircle(80, 78, 72);
+      g.fillStyle(0xff9800);
       g.fillPoints(
-        [new Phaser.Math.Vector2(30, 20), new Phaser.Math.Vector2(125, 70), new Phaser.Math.Vector2(30, 120)],
+        [new Phaser.Math.Vector2(58, 40), new Phaser.Math.Vector2(118, 78), new Phaser.Math.Vector2(58, 116)],
         true,
       );
     });

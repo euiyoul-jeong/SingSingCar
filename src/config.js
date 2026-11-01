@@ -22,7 +22,7 @@ export const MISSIONS_PER_SPEED_UP = 2;
 export const BG_SPEED_FACTOR = 1.6;
 
 // 장애물 줄 사이 거리(px). 미션이 시작되면 첫 줄은 조금 빨리 나온다
-export const ROW_GAP = 520;
+export const ROW_GAP = 620;
 export const FIRST_ROW_GAP = 300;
 // 속도 단계별로 한 줄에 차 2대가 나올 확률 (3대는 절대 안 나온다)
 export const TWO_CAR_CHANCE = [0.1, 0.15, 0.2, 0.25, 0.3];
@@ -59,6 +59,8 @@ export const DODGE = {
 // 충돌 판정 (아이에게 너그럽게 히트박스를 줄인다)
 export const HIT_DX = 80;
 export const HIT_PAD = 30;
+// 이미 내 차 옆을 거의 지나간 차(내 차 뒤쪽)는 이만큼 더 겹쳐도 봐준다
+export const HIT_PAD_REAR = 70;
 export const TOKEN_DX = 95;
 export const TOKEN_DY = 120;
 export const INVINCIBLE_MS = 1500;

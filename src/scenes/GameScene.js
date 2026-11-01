@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 import {
   BG_SPEED_FACTOR,
   GAME_W,
-  HIT_DX,
-  HIT_PAD,
   MISSION_AREAS,
   MISSION_BONUS,
   MISSIONS_PER_SPEED_UP,
@@ -22,6 +20,7 @@ import { Spawner } from '../objects/Spawner.js';
 import { loadMissionGoal, loadSpeed } from '../storage.js';
 import { Hud } from '../ui/Hud.js';
 import { MissionPanel } from '../ui/MissionPanel.js';
+import { SteerButtons } from '../ui/SteerButtons.js';
 import { makeSpecView } from '../ui/specView.js';
 import { makeText } from '../ui/widgets.js';
 
@@ -63,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     this.hud = new Hud(this, { onPause: () => this.pauseGame() });
     this.hud.setMission(1, this.missionGoal);
     this.panel = new MissionPanel(this);
+    this.steerButtons = new SteerButtons(this);
 
     // 화면 왼쪽 절반 = 왼쪽, 오른쪽 절반 = 오른쪽. 버튼 위를 누른 건 무시
     this.input.on('pointerdown', (pointer, over) => {
@@ -94,6 +94,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   steer(dir) {
+    this.steerButtons.press(dir);
     if (this.player.move(dir)) {
       sfx.move();
       this.hideHint();
@@ -304,13 +305,7 @@ export class GameScene extends Phaser.Scene {
 
   checkHits() {
     const p = this.player;
-    for (const car of this.spawner.cars) {
-      const reachY = (car.displayHeight + p.displayHeight) / 2 - HIT_PAD;
-      if (Math.abs(car.x - p.x) < HIT_DX && Math.abs(car.y - p.y) < reachY) {
-        this.crash();
-        break;
-      }
-    }
+    if (this.spawner.cars.some((car) => p.hits(car))) this.crash();
     if (this.phase !== 'play') return;
     for (const item of [...this.spawner.items]) {
       if (Math.abs(item.x - p.x) < TOKEN_DX && Math.abs(item.y - p.y) < TOKEN_DY) {
@@ -332,15 +327,15 @@ export class GameScene extends Phaser.Scene {
   }
 
 
+  // 처음에는 좌우 버튼을 깜빡이고 버튼 위에 "눌러요"를 띄운다
   showHint() {
     const style = { stroke: '#37474f', strokeThickness: 8 };
-    const leftArrow = this.add.image(140, 1200, 'arrow').setFlipX(true).setScale(0.7);
-    const rightArrow = this.add.image(580, 1200, 'arrow').setScale(0.7);
-    const leftText = makeText(this, 140, 1110, '눌러요', 44, '#ffffff', style);
-    const rightText = makeText(this, 580, 1110, '눌러요', 44, '#ffffff', style);
-    this.hint = [leftArrow, rightArrow, leftText, rightText];
+    const leftText = makeText(this, 100, 1080, '눌러요', 44, '#ffffff', style);
+    const rightText = makeText(this, 620, 1080, '눌러요', 44, '#ffffff', style);
+    this.hint = [leftText, rightText];
     for (const h of this.hint) h.setDepth(30);
     this.tweens.add({ targets: this.hint, alpha: 0.35, duration: 500, yoyo: true, repeat: -1 });
+    this.steerButtons.blink(true);
     this.time.delayedCall(8000, () => this.hideHint());
   }
 
@@ -348,6 +343,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.hint) return;
     const hint = this.hint;
     this.hint = null;
+    this.steerButtons.blink(false);
     this.tweens.killTweensOf(hint);
     this.tweens.add({ targets: hint, alpha: 0, duration: 300, onComplete: () => hint.forEach((h) => h.destroy()) });
   }
