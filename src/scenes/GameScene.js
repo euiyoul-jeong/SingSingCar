@@ -330,8 +330,8 @@ export class GameScene extends Phaser.Scene {
   // 처음에는 좌우 버튼을 깜빡이고 버튼 위에 "눌러요"를 띄운다
   showHint() {
     const style = { stroke: '#37474f', strokeThickness: 8 };
-    const leftText = makeText(this, 100, 1080, '눌러요', 44, '#ffffff', style);
-    const rightText = makeText(this, 620, 1080, '눌러요', 44, '#ffffff', style);
+    const leftText = makeText(this, 66, 885, '눌러요', 36, '#ffffff', style);
+    const rightText = makeText(this, 654, 885, '눌러요', 36, '#ffffff', style);
     this.hint = [leftText, rightText];
     for (const h of this.hint) h.setDepth(30);
     this.tweens.add({ targets: this.hint, alpha: 0.35, duration: 500, yoyo: true, repeat: -1 });

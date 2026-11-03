@@ -251,16 +251,17 @@ export class BootScene extends Phaser.Scene {
     });
 
     // 좌우 이동 안내 버튼 (오른쪽 화살표, 왼쪽은 뒤집어 쓴다)
-    this.bake('btn_steer', 160, 160, (g) => {
+    // 세로로 긴 알약 모양. 내 차 양옆 잔디에 세운다
+    this.bake('btn_steer', 120, 290, (g) => {
       g.fillStyle(0x000000, 0.25);
-      g.fillCircle(80, 86, 72);
+      g.fillRoundedRect(0, 8, 120, 280, 56);
       g.fillStyle(0xffffff, 0.92);
-      g.fillCircle(80, 78, 72);
+      g.fillRoundedRect(0, 0, 120, 280, 56);
       g.lineStyle(6, 0x37474f);
-      g.strokeCircle(80, 78, 72);
+      g.strokeRoundedRect(3, 3, 114, 274, 53);
       g.fillStyle(0xff9800);
       g.fillPoints(
-        [new Phaser.Math.Vector2(58, 40), new Phaser.Math.Vector2(118, 78), new Phaser.Math.Vector2(58, 116)],
+        [new Phaser.Math.Vector2(40, 100), new Phaser.Math.Vector2(94, 140), new Phaser.Math.Vector2(40, 180)],
         true,
       );
     });

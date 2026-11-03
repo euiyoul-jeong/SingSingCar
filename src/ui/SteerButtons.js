@@ -1,14 +1,15 @@
+import { PLAYER_Y } from '../config.js';
+
 const DEPTH = 30;
-const Y = 1190;
 const ALPHA = 0.9;
 
-// 화면 아래 양쪽의 좌우 버튼. 어디를 누르면 되는지 보여 주기만 한다.
+// 내 차 양옆 잔디에 세운 좌우 버튼. 어디를 누르면 되는지 보여 주기만 한다.
 // 일부러 setInteractive를 하지 않아서, 이동은 지금처럼 장면의 화면 절반 판정이 맡는다
 export class SteerButtons {
   constructor(scene) {
     this.scene = scene;
-    this.left = scene.add.image(100, Y, 'btn_steer').setFlipX(true);
-    this.right = scene.add.image(620, Y, 'btn_steer');
+    this.left = scene.add.image(62, PLAYER_Y, 'btn_steer').setFlipX(true);
+    this.right = scene.add.image(658, PLAYER_Y, 'btn_steer');
     this.blinkTween = null;
     for (const b of [this.left, this.right]) b.setDepth(DEPTH).setAlpha(ALPHA);
   }
